@@ -1,9 +1,18 @@
+<!-- ============================================
+     Preverjevalnik kletvic
+     Verzija: 1.1
+     Datum: 14.10.2026
+     Spremembe:
+       - Dodano diagnostično polje z gumbi Počisti in Kopiraj
+       - Beleženje vseh pomembnih dogodkov (zagon, napake, zaznave)
+       - Prikaz napak SpeechRecognition v realnem času
+     ============================================ -->
 <!DOCTYPE html>
 <html lang="sl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Preverjevalnik kletvic</title>
+<title>Preverjevalnik kletvic v1.1</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -13,7 +22,8 @@
     min-height: 100vh;
     display: flex; flex-direction: column; align-items: center;
   }
-  h1 { font-size: 20px; margin: 8px 0 16px; text-align: center; }
+  h1 { font-size: 20px; margin: 8px 0 4px; text-align: center; }
+  #verzija { font-size: 12px; color: #666; margin-bottom: 16px; }
 
   #vu-ovoj {
     width: 100%; max-width: 500px;
@@ -80,11 +90,53 @@
     background: #333; color: #ccc; border: none;
     border-radius: 6px; cursor: pointer; font-size: 13px;
   }
+
+  /* ---- Diagnostično polje ---- */
+  #diagnostika {
+    margin-top: 24px;
+    width: 100%; max-width: 500px;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 12px;
+  }
+  #diagnostika h2 {
+    font-size: 15px; color: #ccc;
+    margin: 0 0 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #gumbiDiag { display: flex; gap: 8px; }
+  #gumbiDiag button {
+    padding: 6px 12px;
+    background: #2a2a2a; color: #ddd;
+    border: 1px solid #444; border-radius: 6px;
+    cursor: pointer; font-size: 12px;
+  }
+  #gumbiDiag button:active { background: #3a3a3a; }
+  #logVsebina {
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #9e9e9e;
+    background: #000;
+    border-radius: 6px;
+    padding: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .log-info { color: #9e9e9e; }
+  .log-ok { color: #7ee87e; }
+  .log-warn { color: #f1c40f; }
+  .log-err { color: #ff7e7e; }
+  .log-cas { color: #555; }
 </style>
 </head>
 <body>
 
 <h1>🎤 Preverjevalnik kletvic</h1>
+<div id="verzija">Verzija 1.1</div>
 
 <div id="vu-ovoj">
   <div id="vu-vrstica"></div>
@@ -119,6 +171,18 @@
   <button id="pocistiZgodovino">Počisti zgodovino</button>
 </div>
 
+<!-- Diagnostično polje -->
+<div id="diagnostika">
+  <h2>
+    Diagnostika
+    <div id="gumbiDiag">
+      <button id="btnKopiraj">📋 Kopiraj</button>
+      <button id="btnPocistiLog">🗑 Počisti</button>
+    </div>
+  </h2>
+  <div id="logVsebina"></div>
+</div>
+
 <script>
 // ---- Kletvice ----
 const kletvice = ["kurba", "jebem", "jebi", "pička", "kurac", "sranje", "prasica", "fak", "shit", "fuck"];
@@ -132,6 +196,7 @@ const vuVrstica = document.getElementById("vu-vrstica");
 const vuOznaka = document.getElementById("vu-oznaka");
 const seznam = document.getElementById("seznam");
 const skupajEl = document.getElementById("skupaj");
+const logVsebina = document.getElementById("logVsebina");
 
 const sInterval = document.getElementById("nastavitveInterval");
 const sPrag = document.getElementById("nastavitvePrag");
@@ -140,8 +205,48 @@ const vInterval = document.getElementById("vrednostInterval");
 const vPrag = document.getElementById("vrednostPrag");
 const vDolzina = document.getElementById("vrednostDolzina");
 const btnPocisti = document.getElementById("pocistiZgodovino");
+const btnKopiraj = document.getElementById("btnKopiraj");
+const btnPocistiLog = document.getElementById("btnPocistiLog");
 
-// ---- localStorage pomožne ----
+// ---- Log ----
+function log(sporocilo, tip = "info") {
+  const zdaj = new Date();
+  const cas = zdaj.toLocaleTimeString("sl-SI") + "." + String(zdaj.getMilliseconds()).padStart(3, "0");
+  const vrstica = document.createElement("div");
+  vrstica.className = "log-" + tip;
+  vrstica.innerHTML = `<span class="log-cas">[${cas}]</span> ${sporocilo}`;
+  logVsebina.appendChild(vrstica);
+  logVsebina.scrollTop = logVsebina.scrollHeight;
+
+  // Omeji na 300 vrstic
+  while (logVsebina.childElementCount > 300) {
+    logVsebina.removeChild(logVsebina.firstChild);
+  }
+}
+
+btnPocistiLog.onclick = () => {
+  logVsebina.innerHTML = "";
+  log("Diagnostični dnevnik počiščen.", "info");
+};
+
+btnKopiraj.onclick = async () => {
+  const besedilo = logVsebina.innerText;
+  try {
+    await navigator.clipboard.writeText(besedilo);
+    log("Dnevnik kopiran v odložišče.", "ok");
+  } catch (e) {
+    // Rezervna metoda
+    const ta = document.createElement("textarea");
+    ta.value = besedilo;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    log("Dnevnik kopiran (rezervna metoda).", "ok");
+  }
+};
+
+// ---- localStorage ----
 function shrani(kljuc, vrednost) {
   try { localStorage.setItem(kljuc, JSON.stringify(vrednost)); } catch (e) {}
 }
@@ -152,14 +257,13 @@ function nalozi(kljuc, privzeto) {
   } catch (e) { return privzeto; }
 }
 
-// ---- Naloži shranjene vrednosti ----
+// ---- Naloži ----
 let intervalSek = nalozi("pk_interval", 10);
 let pragDb = nalozi("pk_prag", -45);
 let minDolzina = nalozi("pk_dolzina", 3);
 let zgodovina = nalozi("pk_zgodovina", []);
 let skupajKletvic = nalozi("pk_skupaj", 0);
 
-// Nastavi drsnike na shranjene vrednosti
 sInterval.value = intervalSek;
 sPrag.value = pragDb;
 sDolzina.value = minDolzina;
@@ -167,21 +271,24 @@ vInterval.textContent = intervalSek + " s";
 vPrag.textContent = pragDb + " dB";
 vDolzina.textContent = minDolzina + " znakov";
 
-// ---- Ob spremembi shrani ----
+// ---- Ob spremembi ----
 sInterval.oninput = () => {
   intervalSek = parseInt(sInterval.value);
   vInterval.textContent = intervalSek + " s";
   shrani("pk_interval", intervalSek);
+  log(`Interval analize: ${intervalSek} s`, "info");
 };
 sPrag.oninput = () => {
   pragDb = parseInt(sPrag.value);
   vPrag.textContent = pragDb + " dB";
   shrani("pk_prag", pragDb);
+  log(`Prag glasnosti: ${pragDb} dB`, "info");
 };
 sDolzina.oninput = () => {
   minDolzina = parseInt(sDolzina.value);
   vDolzina.textContent = minDolzina + " znakov";
   shrani("pk_dolzina", minDolzina);
+  log(`Min. dolžina besedila: ${minDolzina} znakov`, "info");
 };
 
 // ---- Stanje ----
@@ -195,6 +302,7 @@ let analyser = null;
 let mikrofonStream = null;
 let vuAnim = null;
 let trenutnaDb = -100;
+let stZagonovRec = 0;
 
 // ---- Sirena ----
 function sirena() {
@@ -215,9 +323,10 @@ function sirena() {
   });
   setTimeout(() => ctx.close(), 2000);
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  log("🔊 Sirena sprožena", "warn");
 }
 
-// ---- VU meter ----
+// ---- VU ----
 async function zazeniVU() {
   try {
     mikrofonStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -243,15 +352,15 @@ async function zazeniVU() {
       vuVrstica.style.width = odstotek + "%";
       vuOznaka.textContent = db.toFixed(0) + " dB";
 
-      // Barva glede na prag
       if (db >= pragDb) vuOznaka.style.color = "#2ecc71";
       else vuOznaka.style.color = "#fff";
 
       vuAnim = requestAnimationFrame(loop);
     };
     loop();
+    log("VU meter zagnan", "ok");
   } catch (e) {
-    console.warn("VU meter ni mogoč:", e);
+    log("VU meter napaka: " + e.message, "err");
   }
 }
 
@@ -264,6 +373,7 @@ function ustaviVU() {
   analyser = null;
   vuVrstica.style.width = "0%";
   vuOznaka.textContent = "– dB";
+  log("VU meter ustavljen", "info");
 }
 
 // ---- Zgodovina ----
@@ -285,6 +395,7 @@ btnPocisti.onclick = () => {
     shrani("pk_zgodovina", zgodovina);
     shrani("pk_skupaj", skupajKletvic);
     osveziZgodovino();
+    log("Zgodovina počiščena", "warn");
   }
 };
 
@@ -293,21 +404,26 @@ function analiziraj() {
   const besedilo = buffer.trim();
   buffer = "";
 
+  log(`Analiza – buffer: "${besedilo}" (${besedilo.length} znakov, trenutno ${trenutnaDb.toFixed(0)} dB)`, "info");
+
   if (trenutnaDb < pragDb && !besedilo) {
     izhod.className = "premajhen";
     izhod.textContent = `🔇 Prešibek signal (${trenutnaDb.toFixed(0)} dB < ${pragDb} dB) – analiza preskočena.`;
+    log(`Preskočeno: prešibek signal in prazen buffer`, "warn");
     return;
   }
 
   if (!besedilo) {
     izhod.className = "varno";
     izhod.textContent = `✅ V zadnjih ${intervalSek} s ni bilo zaznanega govora.`;
+    log(`Preskočeno: prazen buffer`, "warn");
     return;
   }
 
   if (besedilo.length < minDolzina) {
     izhod.className = "premajhen";
     izhod.textContent = `✋ Prekratko besedilo (${besedilo.length} < ${minDolzina} znakov) – analiza preskočena.`;
+    log(`Preskočeno: prekratko besedilo`, "warn");
     return;
   }
 
@@ -325,9 +441,9 @@ function analiziraj() {
     });
     izhod.className = "slabo";
     izhod.innerHTML = `⚠️ Zaznana kletvica: <strong>${najdene.join(", ")}</strong><br><small>${oznacevalnik}</small>`;
+    log(`⚠️ NAJDENO: ${najdene.join(", ")}`, "err");
     sirena();
 
-    // Shrani v zgodovino
     zgodovina.unshift({
       cas: new Date().toLocaleString("sl-SI"),
       besede: najdene.join(", ")
@@ -338,52 +454,43 @@ function analiziraj() {
     shrani("pk_zgodovina", zgodovina);
     shrani("pk_skupaj", skupajKletvic);
     osveziZgodovino();
-
   } else {
     izhod.className = "varno";
     izhod.textContent = `✅ V redu. Prepoznano: ${besedilo}`;
+    log(`V redu, brez kletvic`, "ok");
   }
 }
 
 // ---- Zagon ----
 gumb.onclick = async () => {
+  log("=== Klik na gumb ===", "info");
+
   if (!SpeechRecognition) {
     izhod.className = "slabo";
     izhod.textContent = "Brskalnik ne podpira prepoznave govora.";
+    log("NAPAKA: SpeechRecognition ni podprt", "err");
     return;
   }
 
   if (!poslusa) {
+    log("Zahtevam dovoljenje za mikrofon...", "info");
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      log("Dovoljenje za mikrofon odobreno", "ok");
     } catch (e) {
       izhod.className = "slabo";
       izhod.textContent = "Dostop do mikrofona je zavrnjen.";
+      log("NAPAKA: dovoljenje zavrnjeno – " + e.message, "err");
       return;
     }
 
     await zazeniVU();
 
-    recognition = new SpeechRecognition();
-    recognition.lang = "sl-SI";
-    recognition.continuous = true;
-    recognition.interimResults = false;
-
-    recognition.onresult = (event) => {
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          buffer += " " + event.results[i][0].transcript;
-        }
-      }
-    };
-    recognition.onerror = (e) => {
-      if (e.error !== "no-speech") console.warn("Napaka:", e.error);
-    };
-    recognition.onend = () => { if (poslusa) recognition.start(); };
+    stZagonovRec = 0;
+    zagonRecognition();
 
     buffer = "";
     preostalo = intervalSek;
-    recognition.start();
     poslusa = true;
     gumb.textContent = "Ustavi";
     gumb.classList.add("aktivno");
@@ -401,10 +508,11 @@ gumb.onclick = async () => {
     }, 1000);
 
   } else {
+    log("Ustavljam...", "info");
+    poslusa = false;
     if (recognition) recognition.stop();
     clearInterval(intervalId);
     intervalId = null;
-    poslusa = false;
     ustaviVU();
     gumb.textContent = "Začni poslušati";
     gumb.classList.remove("aktivno");
@@ -412,14 +520,72 @@ gumb.onclick = async () => {
   }
 };
 
-// Ob zaprtju ustavi
+function zagonRecognition() {
+  recognition = new SpeechRecognition();
+  recognition.lang = "sl-SI";
+  recognition.continuous = true;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    stZagonovRec++;
+    log(`SpeechRecognition zagnan (#${stZagonovRec}, jezik: ${recognition.lang})`, "ok");
+  };
+
+  recognition.onresult = (event) => {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        const t = event.results[i][0].transcript;
+        buffer += " " + t;
+        log(`Prepoznano: "${t}"`, "ok");
+      } else {
+        log(`Vmesno: "${event.results[i][0].transcript}"`, "info");
+      }
+    }
+  };
+
+  recognition.onerror = (e) => {
+    log(`NAPAKA SpeechRecognition: ${e.error}${e.message ? " – " + e.message : ""}`, "err");
+    if (e.error === "not-allowed") {
+      izhod.className = "slabo";
+      izhod.textContent = "Mikrofon zavrnjen med sejo.";
+    } else if (e.error === "no-speech") {
+      // tiho
+    } else if (e.error === "network") {
+      izhod.className = "slabo";
+      izhod.textContent = "Omrežna napaka – Chrome potrebuje internet za prepoznavo.";
+    }
+  };
+
+  recognition.onend = () => {
+    log("SpeechRecognition se je zaključil", "warn");
+    if (poslusa) {
+      setTimeout(() => {
+        if (poslusa) {
+          try { recognition.start(); }
+          catch (e) { log("Napaka pri ponovnem zagonu: " + e.message, "err"); }
+        }
+      }, 250);
+    }
+  };
+
+  try {
+    recognition.start();
+  } catch (e) {
+    log("Napaka pri zagonu: " + e.message, "err");
+  }
+}
+
 window.addEventListener("beforeunload", () => {
   if (recognition) recognition.stop();
   ustaviVU();
 });
 
-// ---- Ob nalaganju prikaži shranjeno zgodovino ----
+// ---- Inicializacija ----
 osveziZgodovino();
+log("=== Aplikacija naložena ===", "ok");
+log(`Verzija 1.1 | SpeechRecognition: ${SpeechRecognition ? "podprt" : "NI podprt"}`, "info");
+log(`Jezik: sl-SI | Interval: ${intervalSek}s | Prag: ${pragDb}dB | Min: ${minDolzina}`, "info");
+if (!SpeechRecognition) log("OPOZORILO: brskalnik ne podpira prepoznave govora", "err");
 </script>
 
 </body>
