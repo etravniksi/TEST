@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<title>Glasovni preverjevalnik kletvic</title>
+<style>
+  body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; background: #f9f9f9; }
+  h1 { color: #333; }
+  #status { font-size: 14px; color: #666; margin-bottom: 10px; }
+  button { font-size: 18px; padding: 12px 24px; cursor: pointer; border: none; border-radius: 8px; background: #007bff; color: white; }
+  button:disabled { background: #ccc; cursor: not-allowed; }
+  button.stop { background: #dc3545; }
+  #rezultat { margin-top: 20px; padding: 16px; border-radius: 8px; min-height: 60px; font-size: 16px; line-height: 1.5; }
+  .varno { background: #e6f7e6; color: #1a7a1a; border: 1px solid #b3e6b3; }
+  .slabo { background: #ffe6e6; color: #b30000; border: 1px solid #ffb3b3; }
+  .stat { margin-top: 20px; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid #ddd; font-size: 14px; }
+  .stat strong { color: #333; }
+  .najdeno { background: #ffcccc; font-weight: bold; padding: 0 2px; }
+  .gumbi { display: flex; gap: 10px; flex-wrap: wrap; }
+  .reset { background: #6c757d; }
+</style>
+</head>
+<body>
+
+<h1>🎤 Glasovni preverjevalnik kletvic</h1>
+<div id="status">Pripravljen. Pritisnite gumb in govorite.</div>
+
+<div class="gumbi">
+  <button id="gumb">Začni poslušati</button>
+  <button id="reset" class="reset">Ponastavi statistiko</button>
+</div>
+
+<div id="rezultat">Tukaj se bo prikazalo prepoznano besedilo...</div>
+
+<div class="stat">
+  <strong>Statistika:</strong><br>
+  Skupaj zaznanih kletvic: <span id="stevec">0</span><br>
+  Zadnja zaznana: <span id="zadnja">–</span><br>
+  Število govorov: <span id="govorov">0</span>
+</div>
+
+<script>
+// 50 slovenskih kletvic (in nekaj angleških)
+const kletvice = [
+  "kurba", "kurbe", "kurbin", "kurčev", "kurcev",
+  "jebem", "jebi", "jebe", "jebeno", "jebemti",
+  "jebiga", "jebemvse", "jebemumater",
+  "pička", "pičke", "pičkin", "pičkica",
+  "kurac", "kurca", "kurcu", "kurčina",
+  "sranje", "srati", "serje", "seronja",
+  "prasica", "prasec", "prasico",
+  "fak", "fakin", "fakno",
+  "pizda", "pizde", "pizdin", "pizdarija",
+  "govno", "govna", "govnar",
+  "drek", "dreka", "drekač",
+  "rit", "ritka", "riti",
+  "bejba", "bejbo", "bejbica",
+  "križ", "križa", "križan",
+  "šupak", "šupki", "šupčina",
+  "klošar", "klošarka", "klošarija",
+  "idiot", "idiotka", "idiotizem",
+  "debil", "debilka", "debilizem",
+  "kreten", "kretenka", "kretenizem",
+  "butec", "butka", "butast",
+  "neumen", "neumnost", "neumnosti",
+  "zajebancija", "zajebavat", "zajebava",
+  "preklet", "prekleta", "prekletstvo",
+  "hudič", "hudiča", "hudičevo",
+  "vrag", "vraga", "vražje",
+  "fuck", "shit", "bitch", "asshole", "damn"
+];
+
+// Podpora brskalnika
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const gumb = document.getElementById("gumb");
+const resetGumb = document.getElementById("reset");
+const status = document.getElementById("status");
+const izhod = document.getElementById("rezultat");
+const stevecEl = document.getElementById("stevec");
+const zadnjaEl = document.getElementById("zadnja");
+const govorovEl = document.getElementById("govorov");
+
+let poslusa = false;
+let skupajKletvic = 0;
+let steviloGovorov = 0;
+let recognition = null;
+
+if (!SpeechRecognition) {
+  status.textContent = "⚠️ Vaš brskalnik ne podpira prepoznavanja govora. Uporabite Chrome ali Edge.";
+  gumb.disabled = true;
+} else {
+  recognition = new SpeechRecognition();
+  recognition.lang = "sl-SI";
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  gumb.onclick = () => {
+    if (!poslusa) {
+      recognition.start();
+      poslusa = true;
+      gumb.textContent = "Ustavi";
+      gumb.classList.add("stop");
+      status.textContent = "🎙️ Poslušam...";
+    } else {
+      recognition.stop();
+      poslusa = false;
+      gumb.textContent = "Začni poslušati";
+      gumb.classList.remove("stop");
+      status.textContent = "Ustavljeno.";
+    }
+  };
+
+  recognition.onresult = (event) => {
+    let besedilo = "";
+    let koncno = false;
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      besedilo += event.results[i][0].transcript;
+      if (event.results[i].isFinal) koncno = true;
+    }
+
+    // Če je končni rezultat, povečaj števec govorov
+    if (koncno) {
+      steviloGovorov++;
+      govorovEl.textContent = steviloGovorov;
+    }
+
+    // Preveri kletvice
+    const najdene = kletvice.filter(k =>
+      besedilo.toLowerCase().includes(k.toLowerCase())
+    );
+
+    if (najdene.length > 0) {
+      skupajKletvic += najdene.length;
+      stevecEl.textContent = skupajKletvic;
+      zadnjaEl.textContent = najdene.join(", ");
+
+      // Označi najdene besede v besedilu
+      let oznaceno = besedilo;
+      najdene.forEach(k => {
+        const re = new RegExp(k, "gi");
+        oznaceno = oznaceno.replace(re, m => `<span class="najdeno">${m}</span>`);
+      });
+
+      izhod.className = "slabo";
+      izhod.innerHTML = `⚠️ Zaznane kletvice: <strong>${najdene.join(", ")}</strong><br><br>${oznaceno}`;
+      pisk();
+    } else {
+      izhod.className = "varno";
+      izhod.textContent = `✅ V redu. Prepoznano: ${besedilo}`;
+    }
+  };
+
+  recognition.onerror = (event) => {
+    if (event.error === "not-allowed") {
+      status.textContent = "❌ Dostop do mikrofona je zavrnjen.";
+    } else if (event.error === "no-speech") {
+      status.textContent = "🎙️ Ni zaznanega govora, poslušam naprej...";
+    } else {
+      status.textContent = `Napaka: ${event.error}`;
+    }
+  };
+
+  recognition.onend = () => {
+    if (poslusa) {
+      // Samodejno ponovno zaženi, če še vedno poslušamo
+      try { recognition.start(); } catch (e) {}
+    }
+  };
+}
+
+// Ponastavi statistiko
+resetGumb.onclick = () => {
+  skupajKletvic = 0;
+  steviloGovorov = 0;
+  stevecEl.textContent = "0";
+  zadnjaEl.textContent = "–";
+  govorovEl.textContent = "0";
+  izhod.className = "";
+  izhod.textContent = "Statistika ponastavljena.";
+};
+
+// Zvočno opozorilo
+function pisk() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.frequency.value = 800;
+  osc.type = "square";
+  gain.gain.value = 0.1;
+  osc.start();
+  osc.stop(ctx.currentTime + 0.3);
+}
+</script>
+
+</body>
+</html>
