@@ -2,55 +2,208 @@
 <html lang="sl">
 <head>
 <meta charset="UTF-8">
-<title>Glasovni preverjevalnik kletvic (5 s interval)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Preverjevalnik kletvic</title>
 <style>
-  body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 16px; }
-  button { font-size: 18px; padding: 12px 24px; cursor: pointer; }
-  #rezultat { margin-top: 20px; padding: 12px; border-radius: 8px; min-height: 40px; }
-  .varno { background: #e6f7e6; color: #1a7a1a; }
-  .slabo { background: #ffe6e6; color: #b30000; font-weight: bold; }
-  #stevec { font-size: 14px; color: #666; margin-top: 8px; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, Roboto, sans-serif;
+    margin: 0; padding: 16px;
+    background: #111; color: #eee;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1 { font-size: 20px; margin: 8px 0 16px; text-align: center; }
+
+  #vu-ovoj {
+    width: 100%; max-width: 500px;
+    height: 28px; background: #222;
+    border-radius: 14px; overflow: hidden;
+    margin-bottom: 12px; position: relative;
+  }
+  #vu-vrstica {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #2ecc71 0%, #f1c40f 60%, #e74c3c 100%);
+    transition: width 0.05s linear;
+  }
+  #vu-oznaka {
+    position: absolute; top: 4px; left: 12px;
+    font-size: 13px; color: #fff;
+    text-shadow: 0 0 3px #000; font-weight: bold;
+  }
+
+  .nastavitve {
+    width: 100%; max-width: 500px;
+    background: #1a1a1a; border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 16px; font-size: 14px;
+  }
+  .vrstica {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .vrstica:last-child { margin-bottom: 0; }
+  .vrstica label { flex: 1; }
+  .vrstica input[type="range"] { flex: 1.2; margin: 0 10px; }
+  .vrstica .vrednost {
+    min-width: 60px; text-align: right;
+    color: #2ecc71; font-weight: bold;
+  }
+
+  #gumb {
+    font-size: 20px; font-weight: bold;
+    padding: 18px 40px; border: none; border-radius: 50px;
+    background: #2ecc71; color: #fff; cursor: pointer;
+    width: 100%; max-width: 320px; transition: background 0.2s;
+  }
+  #gumb.aktivno { background: #e74c3c; }
+  #gumb:disabled { background: #555; }
+
+  #stevec { font-size: 15px; color: #888; margin: 14px 0; min-height: 22px; }
+  #rezultat {
+    margin-top: 12px; padding: 14px; border-radius: 12px;
+    width: 100%; max-width: 500px; min-height: 60px;
+    font-size: 15px; line-height: 1.5; word-break: break-word;
+  }
+  .varno { background: #1a3a1a; color: #7ee87e; }
+  .slabo { background: #3a1a1a; color: #ff7e7e; font-weight: bold; }
+  .najdeno { background: #ff4444; color: #fff; padding: 0 4px; border-radius: 4px; }
+  .premajhen { background: #2a2a1a; color: #d4b34a; }
+
+  #zgodovina {
+    margin-top: 24px; width: 100%; max-width: 500px;
+    font-size: 14px; color: #aaa;
+  }
+  #zgodovina h2 { font-size: 16px; color: #ccc; margin-bottom: 6px; }
+  .zapis { padding: 6px 0; border-bottom: 1px solid #333; }
+  #pocistiZgodovino {
+    margin-top: 10px; padding: 8px 16px;
+    background: #333; color: #ccc; border: none;
+    border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
 </style>
 </head>
 <body>
 
-<h1>Glasovni preverjevalnik kletvic</h1>
+<h1>🎤 Preverjevalnik kletvic</h1>
+
+<div id="vu-ovoj">
+  <div id="vu-vrstica"></div>
+  <div id="vu-oznaka">– dB</div>
+</div>
+
+<div class="nastavitve">
+  <div class="vrstica">
+    <label>Interval analize</label>
+    <input type="range" id="nastavitveInterval" min="3" max="30" step="1" value="10">
+    <span class="vrednost" id="vrednostInterval">10 s</span>
+  </div>
+  <div class="vrstica">
+    <label>Prag glasnosti (VU)</label>
+    <input type="range" id="nastavitvePrag" min="-80" max="-10" step="1" value="-45">
+    <span class="vrednost" id="vrednostPrag">-45 dB</span>
+  </div>
+  <div class="vrstica">
+    <label>Min. dolžina besedila</label>
+    <input type="range" id="nastavitveDolzina" min="1" max="20" step="1" value="3">
+    <span class="vrednost" id="vrednostDolzina">3 znaki</span>
+  </div>
+</div>
+
 <button id="gumb">Začni poslušati</button>
-<div id="rezultat">Pritisnite gumb in govorite...</div>
 <div id="stevec"></div>
+<div id="rezultat">Pritisnite gumb in govorite...</div>
+
+<div id="zgodovina">
+  <h2>Zgodovina zaznav <span id="skupaj" style="color:#e74c3c;"></span></h2>
+  <div id="seznam">Ni še zaznav.</div>
+  <button id="pocistiZgodovino">Počisti zgodovino</button>
+</div>
 
 <script>
+// ---- Kletvice ----
 const kletvice = ["kurba", "jebem", "jebi", "pička", "kurac", "sranje", "prasica", "fak", "shit", "fuck"];
 
+// ---- Elementi ----
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (!SpeechRecognition) {
-  document.getElementById("rezultat").textContent = "Vaš brskalnik ne podpira prepoznavanja govora.";
-  document.getElementById("gumb").disabled = true;
+const gumb = document.getElementById("gumb");
+const stevec = document.getElementById("stevec");
+const izhod = document.getElementById("rezultat");
+const vuVrstica = document.getElementById("vu-vrstica");
+const vuOznaka = document.getElementById("vu-oznaka");
+const seznam = document.getElementById("seznam");
+const skupajEl = document.getElementById("skupaj");
+
+const sInterval = document.getElementById("nastavitveInterval");
+const sPrag = document.getElementById("nastavitvePrag");
+const sDolzina = document.getElementById("nastavitveDolzina");
+const vInterval = document.getElementById("vrednostInterval");
+const vPrag = document.getElementById("vrednostPrag");
+const vDolzina = document.getElementById("vrednostDolzina");
+const btnPocisti = document.getElementById("pocistiZgodovino");
+
+// ---- localStorage pomožne ----
+function shrani(kljuc, vrednost) {
+  try { localStorage.setItem(kljuc, JSON.stringify(vrednost)); } catch (e) {}
+}
+function nalozi(kljuc, privzeto) {
+  try {
+    const v = localStorage.getItem(kljuc);
+    return v === null ? privzeto : JSON.parse(v);
+  } catch (e) { return privzeto; }
 }
 
-const recognition = new SpeechRecognition();
-recognition.lang = "sl-SI";
-recognition.continuous = true;
-recognition.interimResults = false; // pomembno: samo končni rezultati
+// ---- Naloži shranjene vrednosti ----
+let intervalSek = nalozi("pk_interval", 10);
+let pragDb = nalozi("pk_prag", -45);
+let minDolzina = nalozi("pk_dolzina", 3);
+let zgodovina = nalozi("pk_zgodovina", []);
+let skupajKletvic = nalozi("pk_skupaj", 0);
 
-const gumb = document.getElementById("gumb");
-const izhod = document.getElementById("rezultat");
-const stevec = document.getElementById("stevec");
+// Nastavi drsnike na shranjene vrednosti
+sInterval.value = intervalSek;
+sPrag.value = pragDb;
+sDolzina.value = minDolzina;
+vInterval.textContent = intervalSek + " s";
+vPrag.textContent = pragDb + " dB";
+vDolzina.textContent = minDolzina + " znakov";
 
+// ---- Ob spremembi shrani ----
+sInterval.oninput = () => {
+  intervalSek = parseInt(sInterval.value);
+  vInterval.textContent = intervalSek + " s";
+  shrani("pk_interval", intervalSek);
+};
+sPrag.oninput = () => {
+  pragDb = parseInt(sPrag.value);
+  vPrag.textContent = pragDb + " dB";
+  shrani("pk_prag", pragDb);
+};
+sDolzina.oninput = () => {
+  minDolzina = parseInt(sDolzina.value);
+  vDolzina.textContent = minDolzina + " znakov";
+  shrani("pk_dolzina", minDolzina);
+};
+
+// ---- Stanje ----
 let poslusa = false;
-let buffer = "";       // zbrano besedilo v trenutnem 5-sekundnem oknu
-let intervalId = null; // ID intervala
+let buffer = "";
+let intervalId = null;
+let preostalo = intervalSek;
+let recognition = null;
+let audioCtx = null;
+let analyser = null;
+let mikrofonStream = null;
+let vuAnim = null;
+let trenutnaDb = -100;
 
 // ---- Sirena ----
 function sirena() {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const gain = ctx.createGain();
   gain.connect(ctx.destination);
-  gain.gain.value = 0.6;
-
+  gain.gain.value = 0.7;
   const toni = [880, 440, 880, 440, 880, 440];
   let cas = ctx.currentTime;
-
   toni.forEach((f) => {
     const osc = ctx.createOscillator();
     osc.type = "square";
@@ -60,90 +213,213 @@ function sirena() {
     osc.stop(cas + 0.25);
     cas += 0.25;
   });
-
   setTimeout(() => ctx.close(), 2000);
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 }
 
-// ---- Analiza bufferja ----
+// ---- VU meter ----
+async function zazeniVU() {
+  try {
+    mikrofonStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const vir = audioCtx.createMediaStreamSource(mikrofonStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    vir.connect(analyser);
+
+    const podatki = new Uint8Array(analyser.fftSize);
+    const loop = () => {
+      analyser.getByteTimeDomainData(podatki);
+      let vsota = 0;
+      for (let i = 0; i < podatki.length; i++) {
+        const v = (podatki[i] - 128) / 128;
+        vsota += v * v;
+      }
+      const rms = Math.sqrt(vsota / podatki.length);
+      const db = 20 * Math.log10(rms || 0.000001);
+      trenutnaDb = db;
+
+      const odstotek = Math.max(0, Math.min(100, ((db + 80) / 80) * 100));
+      vuVrstica.style.width = odstotek + "%";
+      vuOznaka.textContent = db.toFixed(0) + " dB";
+
+      // Barva glede na prag
+      if (db >= pragDb) vuOznaka.style.color = "#2ecc71";
+      else vuOznaka.style.color = "#fff";
+
+      vuAnim = requestAnimationFrame(loop);
+    };
+    loop();
+  } catch (e) {
+    console.warn("VU meter ni mogoč:", e);
+  }
+}
+
+function ustaviVU() {
+  if (vuAnim) cancelAnimationFrame(vuAnim);
+  vuAnim = null;
+  if (mikrofonStream) mikrofonStream.getTracks().forEach(t => t.stop());
+  mikrofonStream = null;
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  analyser = null;
+  vuVrstica.style.width = "0%";
+  vuOznaka.textContent = "– dB";
+}
+
+// ---- Zgodovina ----
+function osveziZgodovino() {
+  if (zgodovina.length === 0) {
+    seznam.textContent = "Ni še zaznav.";
+  } else {
+    seznam.innerHTML = zgodovina.slice(0, 20).map(z =>
+      `<div class="zapis">${z.cas} – <strong style="color:#ff7e7e;">${z.besede}</strong></div>`
+    ).join("");
+  }
+  skupajEl.textContent = skupajKletvic > 0 ? `(skupaj: ${skupajKletvic})` : "";
+}
+
+btnPocisti.onclick = () => {
+  if (confirm("Res želite počistiti vso zgodovino in statistiko?")) {
+    zgodovina = [];
+    skupajKletvic = 0;
+    shrani("pk_zgodovina", zgodovina);
+    shrani("pk_skupaj", skupajKletvic);
+    osveziZgodovino();
+  }
+};
+
+// ---- Analiza ----
 function analiziraj() {
   const besedilo = buffer.trim();
-  buffer = ""; // izprazni buffer za naslednje okno
+  buffer = "";
+
+  if (trenutnaDb < pragDb && !besedilo) {
+    izhod.className = "premajhen";
+    izhod.textContent = `🔇 Prešibek signal (${trenutnaDb.toFixed(0)} dB < ${pragDb} dB) – analiza preskočena.`;
+    return;
+  }
 
   if (!besedilo) {
     izhod.className = "varno";
-    izhod.textContent = "✅ V zadnjih 5 sekundah ni bilo govora.";
+    izhod.textContent = `✅ V zadnjih ${intervalSek} s ni bilo zaznanega govora.`;
+    return;
+  }
+
+  if (besedilo.length < minDolzina) {
+    izhod.className = "premajhen";
+    izhod.textContent = `✋ Prekratko besedilo (${besedilo.length} < ${minDolzina} znakov) – analiza preskočena.`;
     return;
   }
 
   const ocisceno = besedilo.toLowerCase();
-
   const najdene = kletvice.filter(k => {
     const re = new RegExp(`\\b${k}\\b`, "i");
     return re.test(ocisceno);
   });
 
   if (najdene.length > 0) {
+    let oznacevalnik = besedilo;
+    najdene.forEach(k => {
+      const re = new RegExp(`\\b${k}\\b`, "gi");
+      oznacevalnik = oznacevalnik.replace(re, m => `<span class="najdeno">${m}</span>`);
+    });
     izhod.className = "slabo";
-    izhod.innerHTML = `⚠️ Zaznana kletvica: <strong>${najdene.join(", ")}</strong><br><small>Prepoznano: ${besedilo}</small>`;
+    izhod.innerHTML = `⚠️ Zaznana kletvica: <strong>${najdene.join(", ")}</strong><br><small>${oznacevalnik}</small>`;
     sirena();
+
+    // Shrani v zgodovino
+    zgodovina.unshift({
+      cas: new Date().toLocaleString("sl-SI"),
+      besede: najdene.join(", ")
+    });
+    if (zgodovina.length > 50) zgodovina.pop();
+    skupajKletvic += najdene.length;
+
+    shrani("pk_zgodovina", zgodovina);
+    shrani("pk_skupaj", skupajKletvic);
+    osveziZgodovino();
+
   } else {
     izhod.className = "varno";
     izhod.textContent = `✅ V redu. Prepoznano: ${besedilo}`;
   }
 }
 
-// ---- Zagon / ustavitev ----
-gumb.onclick = () => {
+// ---- Zagon ----
+gumb.onclick = async () => {
+  if (!SpeechRecognition) {
+    izhod.className = "slabo";
+    izhod.textContent = "Brskalnik ne podpira prepoznave govora.";
+    return;
+  }
+
   if (!poslusa) {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      izhod.className = "slabo";
+      izhod.textContent = "Dostop do mikrofona je zavrnjen.";
+      return;
+    }
+
+    await zazeniVU();
+
+    recognition = new SpeechRecognition();
+    recognition.lang = "sl-SI";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+
+    recognition.onresult = (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          buffer += " " + event.results[i][0].transcript;
+        }
+      }
+    };
+    recognition.onerror = (e) => {
+      if (e.error !== "no-speech") console.warn("Napaka:", e.error);
+    };
+    recognition.onend = () => { if (poslusa) recognition.start(); };
+
     buffer = "";
+    preostalo = intervalSek;
     recognition.start();
     poslusa = true;
     gumb.textContent = "Ustavi";
-
-    // Vsakih 5 sekund analiziraj
-    let preostalo = 5;
+    gumb.classList.add("aktivno");
+    izhod.className = "";
+    izhod.textContent = "Poslušam...";
     stevec.textContent = `Naslednja analiza čez ${preostalo} s...`;
+
     intervalId = setInterval(() => {
       preostalo--;
       if (preostalo <= 0) {
         analiziraj();
-        preostalo = 5;
+        preostalo = intervalSek;
       }
       stevec.textContent = `Naslednja analiza čez ${preostalo} s...`;
     }, 1000);
 
-    izhod.textContent = "Poslušam...";
-    izhod.className = "";
   } else {
-    recognition.stop();
+    if (recognition) recognition.stop();
     clearInterval(intervalId);
     intervalId = null;
     poslusa = false;
+    ustaviVU();
     gumb.textContent = "Začni poslušati";
+    gumb.classList.remove("aktivno");
     stevec.textContent = "";
   }
 };
 
-// ---- Zbiranje rezultatov ----
-recognition.onresult = (event) => {
-  for (let i = event.resultIndex; i < event.results.length; i++) {
-    if (event.results[i].isFinal) {
-      buffer += " " + event.results[i][0].transcript;
-    }
-  }
-};
+// Ob zaprtju ustavi
+window.addEventListener("beforeunload", () => {
+  if (recognition) recognition.stop();
+  ustaviVU();
+});
 
-recognition.onerror = (event) => {
-  if (event.error === "not-allowed") {
-    izhod.textContent = "Dostop do mikrofona je zavrnjen.";
-  } else {
-    izhod.textContent = `Napaka: ${event.error}`;
-  }
-};
-
-recognition.onend = () => {
-  if (poslusa) recognition.start(); // samodejno nadaljuj
-};
+// ---- Ob nalaganju prikaži shranjeno zgodovino ----
+osveziZgodovino();
 </script>
 
 </body>
