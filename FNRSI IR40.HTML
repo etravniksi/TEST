@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNIRSI IR40 - Merjenje Lesa (Demo)</title>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --success: #28a745;
+            --danger: #dc3545;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1, h2 { margin-top: 0; font-size: 1.2rem; color: var(--primary); }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        .badge { padding: 4px 8px; border-radius: 4px; color: white; background: #888; }
+        .badge.connected { background: var(--success); }
+        .badge.disconnected { background: var(--danger); }
+        
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        button.secondary { background: #6c757d; }
+        
+        .display-value {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            color: var(--primary);
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        .display-label { text-align: center; font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .form-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .form-group input[type="number"] { width: 80px; padding: 5px; }
+        
+        /* Tabela kosov */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; font-size: 0.9rem; color: #555; }
+        tr.active td { background: #e2f0ff; font-weight: bold; }
+        
+        .log-box {
+            height: 100px;
+            overflow-y: auto;
+            background: #222;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 0.8rem;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h1>Merilnik Lesa (IR40 Demo)</h1>
+        <div class="status-bar">
+            <span>Status naprave:</span>
+            <span id="connectionStatus" class="badge disconnected">Nepovezano</span>
+        </div>
+        
+        <div class="controls">
+            <button id="btnConnect">Poveži IR40</button>
+            <button id="btnDisconnect" disabled class="secondary">Prekini</button>
+            <button id="btnMock" class="secondary" style="background: #ffc107; color: #000;">Simuliraj meritev</button>
+        </div>
+        <div id="logBox" class="log-box"></div>
+    </div>
+
+    <div class="card">
+        <div class="display-label" id="currentModeLabel">Čakam na meritev...</div>
+        <div class="display-value" id="currentValue">-- m</div>
+        
+        <div class="form-group">
+            <label>Meja premer/dolžina (m):</label>
+            <input type="number" id="threshold" value="1.0" step="0.1">
+        </div>
+        <div class="form-group">
+            <label>Čas do novega kosa (sek):</label>
+            <input type="number" id="timeout" value="15">
+        </div>
+        
+        <div class="controls" style="margin-top: 20px;">
+            <button id="btnNewPiece" class="secondary" style="background: #17a2b8;">Nov kos (Ročno)</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Zabeleženi kosi</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Premer (m)</th>
+                    <th>Dolžina (m)</th>
+                </tr>
+            </thead>
+            <tbody id="piecesTableBody">
+                <tr class="active">
+                    <td>Trenutni</td>
+                    <td id="curDia">-</td>
+                    <td id="curLen">-</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // --- STANJE APLIKACIJE ---
+    let bluetoothDevice = null;
+    let rxCharacteristic = null; // Za prejemanje (Notify)
+    let txCharacteristic = null; // Za pošiljanje (Write)
+    
+    let currentPiece = { diameter: null, length: null };
+    let pieces = [];
+    let lastMeasurementTime = 0;
+    let inactivityTimer = null;
+
+    // UUID-ji (Standardna 128-bitna oblika za 16-bitne UUID-je)
+    const SERVICE_UUID = '0000ee01-0000-1000-8000-00805f9b34fb';
+    const RX_UUID = '0000ee02-0000-1000-8000-00805f9b34fb';
+    const TX_UUID = '0000ee03-0000-1000-8000-00805f9b34fb';
+
+    // --- DOM ELEMENTI ---
+    const btnConnect = document.getElementById('btnConnect');
+    const btnDisconnect = document.getElementById('btnDisconnect');
+    const btnMock = document.getElementById('btnMock');
+    const btnNewPiece = document.getElementById('btnNewPiece');
+    const connStatus = document.getElementById('connectionStatus');
+    const logBox = document.getElementById('logBox');
+    const currentValueEl = document.getElementById('currentValue');
+    const currentModeLabel = document.getElementById('currentModeLabel');
+    const thresholdInput = document.getElementById('threshold');
+    const timeoutInput = document.getElementById('timeout');
+
+    // --- LOGIKA ---
+    function log(msg) {
+        const p = document.createElement('div');
+        p.textContent = `> ${msg}`;
+        logBox.appendChild(p);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function updateUI() {
+        document.getElementById('curDia').textContent = currentPiece.diameter ? currentPiece.diameter.toFixed(3) : '-';
+        document.getElementById('curLen').textContent = currentPiece.length ? currentPiece.length.toFixed(3) : '-';
+        
+        const tbody = document.getElementById('piecesTableBody');
+        // Odstrani stare vrstice (obdrži samo "Trenutni")
+        while(tbody.rows.length > 1) {
+            tbody.deleteRow(1);
+        }
+        
+        pieces.forEach((p, index) => {
+            const row = tbody.insertRow();
+            row.innerHTML = `<td>${index + 1}</td><td>${p.diameter.toFixed(3)}</td><td>${p.length.toFixed(3)}</td>`;
+        });
+    }
+
+    function startNewPiece() {
+        if (currentPiece.diameter || currentPiece.length) {
+            if (currentPiece.diameter && currentPiece.length) {
+                pieces.push({ ...currentPiece });
+                log(`Kos zaključen: Premer ${currentPiece.diameter.toFixed(3)}m, Dolžina ${currentPiece.length.toFixed(3)}m`);
+            } else {
+                log("Opozorilo: Kos ni imel obeh meritev, a je bil vseeno shranjen.");
+                pieces.push({ ...currentPiece });
+            }
+        }
+        currentPiece = { diameter: null, length: null };
+        updateUI();
+        currentModeLabel.textContent = "Pripravljen na nov kos...";
+        currentValueEl.textContent = "-- m";
+    }
+
+    function processMeasurement(value) {
+        const now = Date.now();
+        const threshold = parseFloat(thresholdInput.value);
+        const timeoutMs = parseFloat(timeoutInput.value) * 1000;
+
+        // 1. Preveri časovno prekinitev (Predlog C)
+        if (lastMeasurementTime > 0 && (now - lastMeasurementTime) > timeoutMs) {
+            log("Časovna prekinitev zaznana. Začenjam nov kos.");
+            startNewPiece();
+        }
+        lastMeasurementTime = now;
+
+        // 2. Klasifikacija meritve
+        if (value <= threshold) {
+            // PREMER
+            currentModeLabel.textContent = "Izmerjen PREMER";
+            currentValueEl.textContent = value.toFixed(3) + " m";
+            
+            // Če že imamo premer IN dolžino, pomeni, da je to nov kos (Predlog B)
+            if (currentPiece.diameter !== null && currentPiece.length !== null) {
+                log("Zaznan nov premer po dolžini. Shranjujem prejšnji kos.");
+                startNewPiece();
+            }
+            currentPiece.diameter = value;
+        } else {
+            // DOLŽINA
+            currentModeLabel.textContent = "Izmerjena DOLŽINA";
+            currentValueEl.textContent = value.toFixed(3) + " m";
+            currentPiece.length = value;
+        }
+        
+        updateUI();
+    }
+
+    // --- BLUETOOTH ---
+    btnConnect.addEventListener('click', async () => {
+        try {
+            log("Iskanje naprave...");
+            bluetoothDevice = await navigator.bluetooth.requestDevice({
+                filters: [{ namePrefix: 'FNIRSI' }],
+                optionalServices: [SERVICE_UUID]
+            });
+
+            bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+            
+            log("Povezovanje na GATT strežnik...");
+            const server = await bluetoothDevice.gatt.connect();
+            
+            log("Iskanje storitve...");
+            const service = await server.getPrimaryService(SERVICE_UUID);
+            
+            rxCharacteristic = await service.getCharacteristic(RX_UUID);
+            txCharacteristic = await service.getCharacteristic(TX_UUID);
+
+            log("Naročanje na obvestila (Notifications)...");
+            await rxCharacteristic.startNotifications();
+            rxCharacteristic.addEventListener('characteristicvaluechanged', handleNotifications);
+
+            connStatus.textContent = "Povezano";
+            connStatus.className = "badge connected";
+            btnConnect.disabled = true;
+            btnDisconnect.disabled = false;
+            log("Povezava uspešna!");
+
+        } catch (error) {
+            log("Napaka: " + error.message);
+        }
+    });
+
+    btnDisconnect.addEventListener('click', () => {
+        if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+            bluetoothDevice.gatt.disconnect();
+        }
+    });
+
+    function onDisconnected() {
+        connStatus.textContent = "Nepovezano";
+        connStatus.className = "badge disconnected";
+        btnConnect.disabled = false;
+        btnDisconnect.disabled = true;
+        log("Povezava prekinjena.");
+    }
+
+    function handleNotifications(event) {
+        const value = event.target.value;
+        // Primer branja podatkov - ODVISNO OD PROTOKOLA NAPRAVE!
+        // Tukaj je primer, kjer so podatki v bajtih 4, 5, 6 (big-endian)
+        // Ko ugotoviš točen format prek nRF Connect, to prilagodi.
+        
+        if (value.byteLength >= 6) {
+            // Primer branja 3 bajtov (npr. 00 00 00)
+            let rawValue = (value.getUint8(4) << 16) | (value.getUint8(5) << 8) | value.getUint8(6);
+            
+            // Ker še ne poznamo točnega formata, to samo izpišemo v dnevnik
+            // log(`Prejet paket: ${rawValue}`);
+            
+            // PREDPOSTAVKA: Vrednost je v milimetrih. Pretvorba v metre:
+            let meters = rawValue / 1000;
+            
+            // Preveri, ali je vrednost smiselna (npr. večja od 0)
+            if (meters > 0.05 && meters < 20) {
+                processMeasurement(meters);
+            }
+        }
+    }
+
+    // --- POŠILJANJE UKAZOV (Za nastavitve) ---
+    // Te funkcije lahko povežeš z gumbi v UI, ko jih boš dodal
+    async function sendCommand(hexString) {
+        if (!txCharacteristic) return;
+        const bytes = new Uint8Array(hexString.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16)));
+        try {
+            await txCharacteristic.writeValue(bytes);
+            log(`Ukaz poslan: ${hexString}`);
+        } catch (e) {
+            log("Napaka pri pošiljanju ukaza: " + e);
+        }
+    }
+
+    // --- ROČNI UKREPI IN MOCK ---
+    btnNewPiece.addEventListener('click', () => {
+        log("Ročno zaključevanje kosa...");
+        startNewPiece();
+    });
+
+    btnMock.addEventListener('click', () => {
+        // Generiraj naključno meritev za testiranje logike
+        let mockValue;
+        if (Math.random() > 0.5) {
+            mockValue = 0.2 + Math.random() * 0.7; // Premer (0.2 - 0.9m)
+            log(`[MOCK] Izmerjen premer: ${mockValue.toFixed(3)} m`);
+        } else {
+            mockValue = 1.5 + Math.random() * 3.0; // Dolžina (1.5 - 4.5m)
+            log(`[MOCK] Izmerjena dolžina: ${mockValue.toFixed(3)} m`);
+        }
+        processMeasurement(mockValue);
+    });
+
+</script>
+</body>
+</html>
