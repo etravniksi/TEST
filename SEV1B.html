@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0d18">
+<title>Števec elektrike SEV1B</title>
+<!-- Števec elektrike SEV1B — LED impulzi s kamero, grafi, govor, stalno delovanje -->
+<style>
+:root{--bg:#0a0d18;--pan:#121829;--pan2:#18203a;--ink:#e8ecf8;--dim:#8a94b4;--line:#263055;--acc:#3d6bff;--acc2:#1240e0;--hot:#ff5a3c;--ok:#2fd18a;--warn:#ffb020;--mt:#6e8cff;--vt:#ff8a3c}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,Roboto,Arial,sans-serif;overflow-x:clip}
+h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px}
+h2{font-size:15px;margin:0 0 10px;font-weight:700}
+.top{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--acc2);position:sticky;top:0;z-index:20}
+.top .ver{font-size:12px;opacity:.8}
+.top .sp{flex:1}
+.dot{width:10px;height:10px;border-radius:50%;background:#555;flex:none}
+.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.dot.err{background:var(--hot)}
+.wrap{max-width:1100px;margin:0 auto;padding:12px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr))}
+.pan{background:var(--pan);border:1px solid var(--line);border-radius:12px;padding:12px}
+.hero{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.big{font-size:clamp(44px,13vw,76px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:.35em;font-weight:600;color:var(--dim);margin-left:4px}
+.sub{color:var(--dim);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}
+.k{background:var(--pan2);border-radius:9px;padding:8px 10px}
+.k b{display:block;font-size:19px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.k span{font-size:12px;color:var(--dim)}
+button,select,input{font:inherit;font-size:16px;color:var(--ink)}
+button{background:var(--pan2);border:1px solid var(--line);border-radius:9px;padding:9px 13px;min-height:44px;cursor:pointer}
+button.pri{background:var(--acc);border-color:var(--acc);font-weight:700}
+button.red{background:#5a1a12;border-color:#8a2a1a}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #9fb4ff;outline-offset:2px}
+select,input[type=number],input[type=text],input[type=time]{background:#0d1222;border:1px solid var(--line);border-radius:8px;padding:8px;min-height:42px;width:100%}
+input[type=range]{width:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1 1 auto}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px 10px}
+.f label{font-size:12px;color:var(--dim);display:block}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;padding:4px 0}
+.chk input{width:20px;height:20px;flex:none}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.tabs button{flex:none;min-height:38px;padding:6px 11px;font-size:14px}
+.tabs button.on{background:var(--acc);border-color:var(--acc)}
+.fig{position:relative;height:260px;margin-top:6px}
+.fig canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y}
+.tip{position:absolute;pointer-events:none;background:#000c;border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:12px;white-space:nowrap;display:none;z-index:3}
+#vw{position:relative;width:100%;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:4/3}
+#vw video{width:100%;height:100%;object-fit:cover;display:block}
+#roi{position:absolute;border:2px solid var(--ok);border-radius:6px;touch-action:none;cursor:move;box-shadow:0 0 0 2000px #0006}
+#roi.hit{border-color:var(--hot);background:#ff5a3c33}
+#sig{width:100%;height:70px;display:block;margin-top:8px;background:#0d1222;border-radius:8px}
+.log{font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;max-height:150px;overflow:auto;background:#0d1222;border-radius:8px;padding:6px;color:#b9c3e6;white-space:pre-wrap}
+.rules{display:grid;gap:8px}
+.rule{background:var(--pan2);border-radius:9px;padding:8px 10px}
+.rule .items{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px}
+.rule .items label{display:flex;gap:5px;align-items:center;font-size:13px;color:var(--dim)}
+.rule .items input{width:17px;height:17px}
+.st{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}
+.st span:nth-child(odd){color:var(--dim)}
+details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
+#dim{position:fixed;inset:0;background:#000;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;color:#3a4a7a;text-align:center}
+#dim .big{color:#4a5f9e}
+#dim.on{display:flex}
+.badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:11px;background:var(--pan2);color:var(--dim);margin-left:6px}
+.warnbox{background:#3a2a08;border:1px solid #6a4a10;border-radius:8px;padding:8px;font-size:13px;color:#ffd890;display:none;margin-top:8px}
+@media(max-width:600px){.wrap{padding:8px}.fig{height:220px}}
+</style>
+</head>
+<body>
+<div class="top">
+  <span class="dot" id="stDot"></span>
+  <h1>Števec elektrike</h1><span class="ver">SEV1B</span>
+  <span class="sp"></span>
+  <button id="bDim" title="Temni zaslon">Temni</button>
+  <button id="bFs" title="Celozaslonsko">⛶</button>
+</div>
+
+<div class="wrap">
+<div class="grid">
+
+<!-- MOČ -->
+<section class="pan">
+  <div class="hero">
+    <div><div class="sub">Trenutna moč</div><div class="big" id="pNow">--<small>W</small></div></div>
+    <div style="text-align:right"><div class="sub">Δt impulza</div><b id="dtNow" style="font-size:20px">-- s</b><div class="sub" id="srcLbl">ustavljeno</div></div>
+  </div>
+  <div class="kpis">
+    <div class="k"><span>Danes</span><b id="kToday">0,000 kWh</b><span id="kTodayC">0,00 €</span></div>
+    <div class="k"><span>Včeraj</span><b id="kYest">–</b><span id="kYestC"></span></div>
+    <div class="k"><span>Ta mesec</span><b id="kMonth">–</b><span id="kMonthC"></span></div>
+    <div class="k"><span>Napoved meseca</span><b id="kProj">–</b><span id="kProjC"></span></div>
+    <div class="k"><span>Min / max danes</span><b id="kMinMax">–</b><span>W</span></div>
+    <div class="k"><span>Osnovna poraba 24 h</span><b id="kBase">–</b><span>najnižje 30-min povp.</span></div>
+    <div class="k"><span>Zadnjih 60 s</span><b id="k60">–</b><span id="k60mm">min / max</span></div>
+    <div class="k"><span>Stanje števca</span><b id="kMeter">–</b><span id="kPulses">0 imp</span></div>
+  </div>
+</section>
+
+<!-- GRAFI -->
+<section class="pan" style="grid-column:1/-1">
+  <div class="row" style="justify-content:space-between;margin-bottom:6px">
+    <h2 style="margin:0;flex:0 0 auto">Grafi</h2>
+    <select id="gMode" style="max-width:200px;flex:0 0 auto">
+      <option value="e">Energija (kWh)</option>
+      <option value="p">Povprečna moč (W)</option>
+      <option value="c">Strošek (€)</option>
+    </select>
+  </div>
+  <div class="tabs" id="gTabs"></div>
+  <div class="fig" id="gFig"><canvas id="gCv"></canvas><div class="tip" id="gTip"></div></div>
+  <div class="sub" id="gSum" style="margin-top:6px"></div>
+</section>
+
+<!-- VIR / KAMERA -->
+<section class="pan">
+  <h2>Vir impulzov</h2>
+  <div class="row">
+    <select id="src">
+      <option value="cam">Kamera (LED na števcu)</option>
+      <option value="sim">Simulator (preizkus)</option>
+      <option value="tap">Ročno (tipka)</option>
+    </select>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button class="pri" id="bStart">▶ Zaženi</button>
+    <button id="bTap">Impulz +1</button>
+  </div>
+  <div id="camBox" style="margin-top:10px">
+    <div id="vw"><video id="vid" playsinline muted autoplay></video><div id="roi"></div></div>
+    <canvas id="sig"></canvas>
+    <div class="sub" id="sigLbl">signal: –</div>
+    <div class="f" style="margin-top:8px">
+      <div><label>Velikost okna <span id="roiSzL"></span></label><input type="range" id="roiSz" min="12" max="140" value="50"></div>
+      <div><label>Prag <span id="thrL"></span></label><input type="range" id="thr" min="3" max="120" value="25"></div>
+      <div><label>Kanal</label><select id="chan"><option value="l">Svetlost</option><option value="r">Rdeča</option><option value="g">Zelena</option><option value="b">Modra</option><option value="ir">Rdeča − modra (IR/rdeč LED)</option></select></div>
+      <div><label>Kamera</label><select id="camSel"><option value="environment">Zadnja</option><option value="user">Sprednja</option></select></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="autoThr" checked> Samodejni prag (prilagaja se svetlobi)</label>
+    <label class="chk"><input type="checkbox" id="lockExp" checked> Poskusi zakleniti osvetlitev in ostrino</label>
+    <div class="warnbox" id="camWarn"></div>
+  </div>
+</section>
+
+<!-- GOVOR -->
+<section class="pan">
+  <h2>Govor</h2>
+  <label class="chk"><input type="checkbox" id="spOn"> Govor vklopljen</label>
+  <div class="f">
+    <div><label>Glas</label><select id="spVoice"></select></div>
+    <div><label>Hitrost <span id="spRateL"></span></label><input type="range" id="spRate" min="0.6" max="1.8" step="0.1" value="1.1"></div>
+    <div><label>Glasnost <span id="spVolL"></span></label><input type="range" id="spVol" min="0" max="1" step="0.05" value="1"></div>
+    <div><label>Slog</label><select id="spStyle"><option value="long">Polno</option><option value="short">Kratko (samo številke)</option></select></div>
+  </div>
+  <h2 style="margin-top:12px">Periodična obvestila</h2>
+  <div class="rules" id="rules"></div>
+  <h2 style="margin-top:12px">Dogodki</h2>
+  <div class="f">
+    <div><label>Opozorilo nad (W)</label><input type="number" id="evHi" value="3500" min="0"></div>
+    <div><label>Skok moči nad (W)</label><input type="number" id="evJump" value="800" min="0"></div>
+    <div><label>Ni impulzov (min)</label><input type="number" id="evNone" value="15" min="0"></div>
+    <div><label>Dnevna meja (kWh)</label><input type="number" id="evDay" value="12" min="0" step="0.5"></div>
+  </div>
+  <label class="chk"><input type="checkbox" id="evHiOn" checked> Opozori pri preseženi moči</label>
+  <label class="chk"><input type="checkbox" id="evJumpOn" checked> Napovej vklop / izklop porabnika (skok)</label>
+  <label class="chk"><input type="checkbox" id="evNoneOn" checked> Opozori, če ni impulzov</label>
+  <label class="chk"><input type="checkbox" id="evDayOn" checked> Opozori ob preseženi dnevni meji</label>
+  <label class="chk"><input type="checkbox" id="evNewMax" > Napovej nov dnevni maksimum</label>
+  <h2 style="margin-top:12px">Tihi čas</h2>
+  <div class="f">
+    <div><label>Od</label><input type="time" id="qFrom" value="22:00"></div>
+    <div><label>Do</label><input type="time" id="qTo" value="07:00"></div>
+  </div>
+  <label class="chk"><input type="checkbox" id="qOn"> Tihi čas (samo opozorila nad mejo)</label>
+  <div class="row" style="margin-top:8px"><button id="spTest">Preizkusi govor</button><button id="spNow">Povej stanje zdaj</button></div>
+</section>
+
+<!-- NASTAVITVE -->
+<section class="pan">
+  <h2>Nastavitve števca</h2>
+  <div class="f">
+    <div><label>Impulzov na kWh</label><input type="number" id="ppk" value="1000" min="1"></div>
+    <div><label>Najkrajši razmik (ms)</label><input type="number" id="gap" value="60" min="5"></div>
+    <div><label>Povprečje čez impulzov</label><input type="number" id="avgN" value="1" min="1" max="20"></div>
+    <div><label>Stanje števca ob zagonu (kWh)</label><input type="number" id="meter0" value="0" step="0.001"></div>
+  </div>
+  <h2 style="margin-top:12px">Cena</h2>
+  <div class="f">
+    <div><label>VT €/kWh (z DDV)</label><input type="number" id="pVT" value="0.135" step="0.001"></div>
+    <div><label>MT €/kWh (z DDV)</label><input type="number" id="pMT" value="0.095" step="0.001"></div>
+    <div><label>MT od ure</label><input type="number" id="mtFrom" value="22" min="0" max="23"></div>
+    <div><label>MT do ure</label><input type="number" id="mtTo" value="6" min="0" max="23"></div>
+  </div>
+  <label class="chk"><input type="checkbox" id="mtWe" checked> Vikend v celoti MT</label>
+  <div class="sub">Cene so primer, vpiši svoje iz računa.</div>
+</section>
+
+<!-- STALNO DELOVANJE -->
+<section class="pan">
+  <h2>Stalno delovanje</h2>
+  <label class="chk"><input type="checkbox" id="kaWake" checked> Zaslon vedno prižgan (Wake Lock + rezervni video)</label>
+  <label class="chk"><input type="checkbox" id="kaAuto" checked> Samodejni zagon ob odprtju strani</label>
+  <label class="chk"><input type="checkbox" id="kaRestart" checked> Samodejni ponovni zagon kamere ob izpadu</label>
+  <label class="chk"><input type="checkbox" id="kaDimAuto"> Po 2 min samodejno temni zaslon</label>
+  <div class="st" id="kaSt" style="margin-top:8px"></div>
+  <div class="warnbox" id="bgWarn">Stran je bila v ozadju. Brskalnik v ozadju ustavi kamero, zato so bili impulzi v tem času lahko izpuščeni. Za stalno delovanje pusti stran odprto spredaj (uporabi »Temni«).</div>
+</section>
+
+<!-- PODATKI -->
+<section class="pan">
+  <h2>Podatki</h2>
+  <div class="row">
+    <button id="bCsvM">CSV minute</button><button id="bCsvD">CSV dnevi</button><button id="bJson">Varnostna kopija</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <label class="chk" style="flex:1 1 100%"><span>Uvoz varnostne kopije:</span><input type="file" id="fImp" accept=".json,application/json" style="width:auto"></label>
+  </div>
+  <div class="row" style="margin-top:8px"><button id="bDemo">Demo podatki (30 dni)</button><button class="red" id="bReset">Pobriši vse</button></div>
+  <div class="sub" id="dataInfo" style="margin-top:6px"></div>
+  <details style="margin-top:8px"><summary>Dnevnik</summary><div class="log" id="log"></div></details>
+</section>
+
+</div>
+</div>
+
+<div id="dim"><div class="sub">tapni za izhod</div><div class="big" id="dimP">--</div><div id="dimS" style="margin-top:10px"></div></div>
+<video id="nosleep" playsinline muted loop style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;left:0"></video>
+<canvas id="smp" width="32" height="32" style="display:none"></canvas>
+
+<script>
+{
+"use strict";
+const VER = "SEV1B";
+const $ = id => document.getElementById(id);
+const KEY = "stevec_elektrike";
+
+/* ===================== POMOŽNO ===================== */
+const fmt = (v, d) => (v == null || !isFinite(v)) ? "–" : v.toLocaleString("sl-SI", {minimumFractionDigits: d, maximumFractionDigits: d});
+const pad = n => String(n).padStart(2, "0");
+const dayKey = t => { const d = new Date(t); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+const monKey = t => { const d = new Date(t); return d.getFullYear() + "-" + pad(d.getMonth() + 1); };
+const hm = t => { const d = new Date(t); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+const minIdx = t => Math.floor(t / 60000);
+const hourIdx = t => Math.floor(t / 3600000);
+function logm(s) { const l = $("log"); const line = hm(Date.now()) + ":" + pad(new Date().getSeconds()) + " " + s + "\n"; l.textContent = (line + l.textContent).slice(0, 6000); }
+
+/* ===================== STANJE ===================== */
+const DEF_RULES = [
+  {id: "s1", name: "Vsako sekundo", ms: 1000, on: false, items: ["p"]},
+  {id: "s10", name: "Vsakih 10 s", ms: 10000, on: false, items: ["p"]},
+  {id: "s30", name: "Vsakih 30 s", ms: 30000, on: false, items: ["p"]},
+  {id: "m1", name: "Vsako minuto", ms: 60000, on: true, items: ["p", "min", "max"]},
+  {id: "m5", name: "Vsakih 5 min", ms: 300000, on: false, items: ["avg", "e"]},
+  {id: "m15", name: "Vsakih 15 min", ms: 900000, on: true, items: ["avg", "min", "max", "e", "today"]},
+  {id: "m30", name: "Vsake pol ure", ms: 1800000, on: false, items: ["avg", "e", "cost"]},
+  {id: "h1", name: "Vsako uro", ms: 3600000, on: true, items: ["time", "e", "avg", "max", "today", "cost"]},
+];
+const ITEMS = {time: "ura", p: "trenutna", min: "min", max: "max", avg: "povprečje", e: "energija intervala", today: "danes kWh", cost: "strošek danes", proj: "napoved meseca"};
+
+let S = {
+  set: {}, rules: DEF_RULES,
+  minutes: {},   // minIdx -> [Wh, pMin, pMax]
+  hours: {},     // hourIdx -> Wh
+  days: {},      // YYYY-MM-DD -> [WhVT, WhMT]
+  pulses: 0, roi: {x: .45, y: .45},
+  run: false, src: "cam"
+};
+function load() {
+  try { const j = JSON.parse(localStorage.getItem(KEY) || "null"); if (j) { Object.assign(S, j); } } catch (e) { logm("Branje shrambe ni uspelo: " + e.message); }
+  // dopolni nova pravila
+  const ids = new Set(S.rules.map(r => r.id));
+  DEF_RULES.forEach(r => { if (!ids.has(r.id)) S.rules.push(JSON.parse(JSON.stringify(r))); });
+}
+let lastSave = 0;
+function save() {
+  prune();
+  try { localStorage.setItem(KEY, JSON.stringify(S)); lastSave = Date.now(); }
+  catch (e) { logm("Shranjevanje ni uspelo: " + e.message); }
+}
+function prune() {
+  const mLim = minIdx(Date.now()) - 8 * 1440, hLim = hourIdx(Date.now()) - 800 * 24;
+  for (const k in S.minutes) if (+k < mLim) delete S.minutes[k];
+  for (const k in S.hours) if (+k < hLim) delete S.hours[k];
+}
+
+/* ===================== NASTAVITVE ↔ UI ===================== */
+const SET_IDS = ["ppk", "gap", "avgN", "meter0", "pVT", "pMT", "mtFrom", "mtTo", "mtWe", "thr", "autoThr", "lockExp", "chan", "camSel", "roiSz",
+  "spOn", "spRate", "spVol", "spStyle", "evHi", "evJump", "evNone", "evDay", "evHiOn", "evJumpOn", "evNoneOn", "evDayOn", "evNewMax", "qFrom", "qTo", "qOn",
+  "kaWake", "kaAuto", "kaRestart", "kaDimAuto", "gMode"];
+function setToUI() {
+  SET_IDS.forEach(id => { const el = $(id); if (!el || !(id in S.set)) return; if (el.type === "checkbox") el.checked = !!S.set[id]; else el.value = S.set[id]; });
+  $("src").value = S.src;
+}
+function uiToSet() {
+  SET_IDS.forEach(id => { const el = $(id); if (!el) return; S.set[id] = el.type === "checkbox" ? el.checked : (el.type === "number" || el.type === "range" ? +el.value : el.value); });
+  if (S.set.spVoice !== undefined || $("spVoice").value) S.set.spVoice = $("spVoice").value || S.set.spVoice;
+}
+const g = id => S.set[id];
+function labels() {
+  $("thrL").textContent = g("thr"); $("roiSzL").textContent = g("roiSz") + " px";
+  $("spRateL").textContent = fmt(g("spRate"), 1) + "×"; $("spVolL").textContent = Math.round(g("spVol") * 100) + " %";
+}
+
+/* ===================== TARIFA ===================== */
+function isMT(t) {
+  const d = new Date(t), h = d.getHours(), wd = d.getDay();
+  if (g("mtWe") && (wd === 0 || wd === 6)) return true;
+  const a = +g("mtFrom"), b = +g("mtTo");
+  return a > b ? (h >= a || h < b) : (h >= a && h < b);
+}
+const price = t => isMT(t) ? +g("pMT") : +g("pVT");
+const dayWh = k => { const d = S.days[k]; return d ? d[0] + d[1] : 0; };
+const dayCost = k => { const d = S.days[k]; return d ? (d[0] * g("pVT") + d[1] * g("pMT")) / 1000 : 0; };
+const whpp = () => 1000 / Math.max(1, +g("ppk"));
+
+/* ===================== IMPULZI IN MOČ ===================== */
+let lastPulse = 0, lastDt = 0, dts = [], curP = null;
+function onPulse(t) {
+  t = t || Date.now();
+  const dt = lastPulse ? t - lastPulse : 0;
+  if (lastPulse && dt < +g("gap")) return; // debounce
+  lastPulse = t;
+  S.pulses++;
+  const wh = whpp();
+  const mi = minIdx(t); const m = S.minutes[mi] || (S.minutes[mi] = [0, null, null]); m[0] += wh;
+  const hi = hourIdx(t); S.hours[hi] = (S.hours[hi] || 0) + wh;
+  const dk = dayKey(t); const d = S.days[dk] || (S.days[dk] = [0, 0]); d[isMT(t) ? 1 : 0] += wh;
+  ruleE(wh);
+  if (dt > 0 && dt < 3600000 * 3) {
+    lastDt = dt; dts.push(dt); while (dts.length > Math.max(1, +g("avgN"))) dts.shift();
+    const avg = dts.reduce((a, b) => a + b, 0) / dts.length;
+    curP = wh * 3600000 / avg;
+    $("dtNow").textContent = fmt(dt / 1000, 2) + " s";
+  }
+  flashRoi();
+  if (S.pulses % 20 === 0) save();
+}
+// ocena moči v tem trenutku (med impulzi pada, če se impulz zamuja)
+function powerNow() {
+  if (!S.run || !lastPulse) return null;
+  const el = Date.now() - lastPulse;
+  if (curP == null) return el > 60000 ? wPulseBound(el) : null;
+  const bound = wPulseBound(el);
+  return el > lastDt ? Math.min(curP, bound) : curP;
+}
+const wPulseBound = el => whpp() * 3600000 / Math.max(el, 1);
+
+/* sekundni vzorci */
+const secBuf = []; // {t,p}
+let dayMax = null, dayMaxKey = "";
+function secondTick() {
+  const t = Date.now();
+  const p = powerNow();
+  if (p != null) {
+    secBuf.push({t, p}); while (secBuf.length && secBuf[0].t < t - 3600000) secBuf.shift();
+    const mi = minIdx(t); const m = S.minutes[mi] || (S.minutes[mi] = [0, null, null]);
+    m[1] = m[1] == null ? p : Math.min(m[1], p); m[2] = m[2] == null ? p : Math.max(m[2], p);
+    ruleP(p);
+    events(p, t);
+  }
+  speakRules(t);
+  render();
+  keepAliveTick(t);
+  if (t - lastSave > 15000) save();
+  if (graphTab.startsWith("live") || t % 10000 < 1000) drawGraph();
+}
+
+/* ===================== DOGODKI ===================== */
+let hiActive = false, jumpRef = null, jumpCnt = 0, noneWarned = 0, dayWarned = "";
+function events(p, t) {
+  const loud = !quiet();
+  if (g("evHiOn") && p > +g("evHi") && !hiActive) { hiActive = true; say(`Opozorilo. Moč ${num(p)} ${vat(p)}, nad mejo.`, true); }
+  if (hiActive && p < +g("evHi") * 0.9) hiActive = false;
+  if (g("evJumpOn") && loud) {
+    if (jumpRef == null) jumpRef = p;
+    const d = p - jumpRef;
+    if (Math.abs(d) > +g("evJump")) { if (++jumpCnt >= 3) { say(d > 0 ? `Vklop porabnika, plus ${num(d)} ${vat(d)}. Skupaj ${num(p)}.` : `Izklop porabnika, minus ${num(-d)} ${vat(-d)}. Skupaj ${num(p)}.`); jumpRef = p; jumpCnt = 0; } }
+    else { jumpCnt = 0; jumpRef = jumpRef * 0.9 + p * 0.1; }
+  }
+  const dk = dayKey(t);
+  if (dk !== dayMaxKey) { dayMaxKey = dk; dayMax = null; }
+  if (dayMax == null || p > dayMax) { if (dayMax != null && g("evNewMax") && loud && p > dayMax * 1.05 && p > 500) say(`Nov dnevni maksimum, ${num(p)} ${vat(p)}.`); dayMax = Math.max(dayMax || 0, p); }
+  if (g("evDayOn") && dayWh(dk) / 1000 > +g("evDay") && dayWarned !== dk) { dayWarned = dk; say(`Presežena dnevna meja. Danes že ${kwhTxt(dayWh(dk) / 1000)}.`, true); }
+}
+function noneCheck(t) {
+  if (!g("evNoneOn") || !S.run || !lastPulse) return;
+  const lim = +g("evNone") * 60000;
+  if (lim > 0 && t - lastPulse > lim && t - noneWarned > lim) { noneWarned = t; say(`Že ${Math.round((t - lastPulse) / 60000)} minut ni impulzov. Preveri kamero.`, true); }
+}
+
+/* ===================== GOVOR ===================== */
+const synth = window.speechSynthesis;
+let voices = [];
+function loadVoices() {
+  if (!synth) { $("spVoice").innerHTML = "<option>govor ni podprt</option>"; return; }
+  voices = synth.getVoices();
+  const sorted = voices.slice().sort((a, b) => (b.lang.startsWith("sl") - a.lang.startsWith("sl")) || a.lang.localeCompare(b.lang));
+  $("spVoice").innerHTML = sorted.map(v => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join("") || "<option value=''>privzeti</option>";
+  if (S.set.spVoice && voices.some(v => v.name === S.set.spVoice)) $("spVoice").value = S.set.spVoice;
+  else { const sl = sorted.find(v => v.lang.startsWith("sl")); if (sl) $("spVoice").value = sl.name; }
+}
+if (synth) { loadVoices(); synth.onvoiceschanged = loadVoices; }
+function quiet() {
+  if (!g("qOn")) return false;
+  const n = new Date(), m = n.getHours() * 60 + n.getMinutes();
+  const [a1, a2] = (g("qFrom") || "22:00").split(":").map(Number), [b1, b2] = (g("qTo") || "07:00").split(":").map(Number);
+  const a = a1 * 60 + a2, b = b1 * 60 + b2;
+  return a > b ? (m >= a || m < b) : (m >= a && m < b);
+}
+const q = [];
+function say(txt, urgent, fast) {
+  if (!synth || !g("spOn")) return;
+  if (quiet() && !urgent) return;
+  if (fast && (synth.speaking || q.length)) return; // sekundna obvestila ne čakajo v vrsti
+  if (urgent) { synth.cancel(); q.length = 0; }
+  const u = new SpeechSynthesisUtterance(txt);
+  const v = voices.find(v => v.name === $("spVoice").value);
+  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "sl-SI";
+  u.rate = +g("spRate"); u.volume = +g("spVol");
+  synth.speak(u);
+}
+const num = v => fmt(Math.round(v), 0).replace(/ |\./g, " ").replace(/\s/g, "");
+function vat(v) { const n = Math.round(Math.abs(v)) % 100; return n === 1 ? "vat" : n === 2 ? "vata" : (n === 3 || n === 4) ? "vati" : "vatov"; }
+function kwhTxt(k) {
+  if (k < 1) { const w = Math.round(k * 1000); return `${w} ${w % 100 === 1 ? "vatna ura" : w % 100 === 2 ? "vatni uri" : (w % 100 === 3 || w % 100 === 4) ? "vatne ure" : "vatnih ur"}`; }
+  return fmt(k, k < 10 ? 2 : 1) + " kilovatne ure";
+}
+const eurTxt = e => e < 1 ? `${Math.round(e * 100)} centov` : `${fmt(e, 2)} evra`;
+
+/* stanje pravil (interval min/max/povp/energija) */
+const R = {}; // id -> {next, n, sum, min, max, e}
+function ruleReset(r, t) { R[r.id] = {next: Math.ceil((t + 1) / r.ms) * r.ms, n: 0, sum: 0, min: null, max: null, e: 0}; }
+function ruleP(p) { for (const id in R) { const a = R[id]; a.n++; a.sum += p; a.min = a.min == null ? p : Math.min(a.min, p); a.max = a.max == null ? p : Math.max(a.max, p); } }
+function ruleE(wh) { for (const id in R) R[id].e += wh; }
+function speakRules(t) {
+  noneCheck(t);
+  // poravnava na uro: npr. 15-min ob :00 :15 :30 :45 po lokalnem času
+  const off = -new Date(t).getTimezoneOffset() * 60000;
+  let best = null;
+  S.rules.forEach(r => {
+    if (!R[r.id]) { ruleReset(r, t + off); return; }
+    if (t + off >= R[r.id].next) { if (r.on && S.run && (!best || r.ms > best.r.ms)) best = {r, a: R[r.id]}; }
+  });
+  // ob sovpadanju pove samo najdaljši interval (npr. ob polni uri ne pove še minutnega)
+  if (best) say(ruleText(best.r, best.a, t), false, best.r.ms <= 1000);
+  S.rules.forEach(r => { if (R[r.id] && t + off >= R[r.id].next) ruleReset(r, t + off); });
+}
+function ruleText(r, a, t) {
+  const short = g("spStyle") === "short";
+  const p = powerNow(), avg = a.n ? a.sum / a.n : null, out = [];
+  const dk = dayKey(t);
+  r.items.forEach(it => {
+    if (it === "time") out.push(short ? hm(t) : `Ura je ${new Date(t).getHours()} in ${new Date(t).getMinutes()}`);
+    if (it === "p" && p != null) out.push(short ? num(p) : `Moč ${num(p)} ${vat(p)}`);
+    if (it === "min" && a.min != null) out.push(short ? `min ${num(a.min)}` : `najmanj ${num(a.min)}`);
+    if (it === "max" && a.max != null) out.push(short ? `max ${num(a.max)}` : `največ ${num(a.max)}`);
+    if (it === "avg" && avg != null) out.push(short ? `povprečje ${num(avg)}` : `povprečno ${num(avg)} ${vat(avg)}`);
+    if (it === "e") out.push(short ? `${fmt(a.e / 1000, 3)}` : `poraba ${kwhTxt(a.e / 1000)}`);
+    if (it === "today") out.push(short ? `danes ${fmt(dayWh(dk) / 1000, 2)}` : `danes ${kwhTxt(dayWh(dk) / 1000)}`);
+    if (it === "cost") out.push(short ? `${fmt(dayCost(dk), 2)} evra` : `strošek danes ${eurTxt(dayCost(dk))}`);
+    if (it === "proj") { const pr = projMonth(); if (pr) out.push(`napoved meseca ${fmt(pr.kwh, 0)} kilovatnih ur`); }
+  });
+  return out.join(short ? ", " : ". ") + ".";
+}
+function buildRules() {
+  $("rules").innerHTML = S.rules.map(r => `<div class="rule" data-id="${r.id}">
+    <label class="chk"><input type="checkbox" data-k="on" ${r.on ? "checked" : ""}><b>${r.name}</b></label>
+    <div class="items">${Object.keys(ITEMS).map(k => `<label><input type="checkbox" data-it="${k}" ${r.items.includes(k) ? "checked" : ""}>${ITEMS[k]}</label>`).join("")}</div></div>`).join("");
+}
+$("rules").addEventListener("change", e => {
+  const box = e.target.closest(".rule"); if (!box) return;
+  const r = S.rules.find(x => x.id === box.dataset.id);
+  if (e.target.dataset.k === "on") r.on = e.target.checked;
+  if (e.target.dataset.it) { const k = e.target.dataset.it; r.items = r.items.filter(x => x !== k); if (e.target.checked) r.items.push(k); r.items.sort((a, b) => Object.keys(ITEMS).indexOf(a) - Object.keys(ITEMS).indexOf(b)); }
+  save();
+});
+
+/* ===================== KAMERA ===================== */
+const vid = $("vid"), roi = $("roi"), smp = $("smp"), sctx = smp.getContext("2d", {willReadFrequently: true});
+let stream = null, track = null, lastFrame = 0, baseline = null, peak = null, isOn = false, sigBuf = [], camRestarts = 0, frameCnt = 0, fps = 0, fpsT = 0;
+async function camStart() {
+  camWarn("");
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { camWarn("Brskalnik ne omogoča kamere. Stran mora teči na https:// ali http://localhost (ne file:// ali content://)."); return false; }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: g("camSel") || "environment", width: {ideal: 640}, height: {ideal: 480}, frameRate: {ideal: 30}}, audio: false});
+  } catch (e) {
+    camWarn("Kamera ni dosegljiva: " + e.name + ". " + (location.protocol === "https:" || location.hostname === "localhost" ? "Dovoli kamero v nastavitvah brskalnika." : "Odpri stran prek https:// ali http://localhost — na file:// brskalnik kamero vedno zavrne."));
+    logm("Kamera: " + e.name + " " + e.message); return false;
+  }
+  track = stream.getVideoTracks()[0];
+  track.onended = () => { logm("Kamera prekinjena."); if (S.run && g("kaRestart")) setTimeout(camRestart, 1500); };
+  vid.srcObject = stream; try { await vid.play(); } catch (e) {}
+  if (g("lockExp")) setTimeout(lockCam, 1500);
+  baseline = null; peak = null; lastFrame = Date.now();
+  loopFrames();
+  logm("Kamera zagnana.");
+  return true;
+}
+async function lockCam() {
+  if (!track || !track.getCapabilities) return;
+  try {
+    const c = track.getCapabilities(), adv = {};
+    if (c.exposureMode && c.exposureMode.includes("manual")) adv.exposureMode = "manual";
+    if (c.focusMode && c.focusMode.includes("manual")) adv.focusMode = "manual";
+    if (c.whiteBalanceMode && c.whiteBalanceMode.includes("manual")) adv.whiteBalanceMode = "manual";
+    if (Object.keys(adv).length) { await track.applyConstraints({advanced: [adv]}); logm("Zaklenjeno: " + Object.keys(adv).join(", ")); }
+  } catch (e) { logm("Zaklepanje osvetlitve ni podprto."); }
+}
+function camStop() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; track = null; vid.srcObject = null; }
+async function camRestart() { camRestarts++; logm("Ponovni zagon kamere #" + camRestarts); camStop(); if (S.run && S.src === "cam") await camStart(); }
+function loopFrames() {
+  if (!stream) return;
+  if (vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(() => { sample(); loopFrames(); });
+  else requestAnimationFrame(() => { sample(); loopFrames(); });
+}
+function sample() {
+  if (!stream || vid.readyState < 2 || !vid.videoWidth) return;
+  const now = Date.now(); lastFrame = now; frameCnt++;
+  if (now - fpsT > 1000) { fps = frameCnt * 1000 / (now - fpsT); frameCnt = 0; fpsT = now; }
+  // pretvori položaj okna (zaslon, object-fit:cover) v koordinate videa
+  const vw = vid.videoWidth, vh = vid.videoHeight, bw = vid.clientWidth, bh = vid.clientHeight;
+  const sc = Math.max(bw / vw, bh / vh), ox = (vw * sc - bw) / 2, oy = (vh * sc - bh) / 2;
+  const sz = +g("roiSz");
+  const cx = S.roi.x * bw, cy = S.roi.y * bh;
+  const sx = (cx - sz / 2 + ox) / sc, sy = (cy - sz / 2 + oy) / sc, ss = sz / sc;
+  sctx.drawImage(vid, sx, sy, ss, ss, 0, 0, 32, 32);
+  const d = sctx.getImageData(0, 0, 32, 32).data, ch = g("chan");
+  // povprečje najsvetlejše četrtine pikslov (LED je majhna točka)
+  const vals = new Array(1024);
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+    const r = d[i], gg = d[i + 1], b = d[i + 2];
+    vals[j] = ch === "r" ? r : ch === "g" ? gg : ch === "b" ? b : ch === "ir" ? Math.max(0, r - b) : 0.299 * r + 0.587 * gg + 0.114 * b;
+  }
+  vals.sort((a, b) => b - a);
+  let s = 0; for (let i = 0; i < 256; i++) s += vals[i]; const v = s / 256;
+  if (baseline == null) { baseline = v; peak = v + 40; }
+  let thr = +g("thr");
+  if (g("autoThr")) thr = Math.max(thr * 0.4, Math.min(thr * 2.5, (peak - baseline) * 0.45));
+  const diff = v - baseline;
+  if (!isOn && diff > thr) { isOn = true; peak = peak * 0.7 + v * 0.3; onPulse(now); }
+  else if (isOn && diff < thr * 0.5) isOn = false;
+  if (!isOn) baseline = baseline * 0.985 + v * 0.015; else peak = Math.max(peak * 0.999, v);
+  roi.classList.toggle("hit", isOn);
+  sigBuf.push([v, baseline, baseline + thr]); if (sigBuf.length > 240) sigBuf.shift();
+  if (frameCnt % 3 === 0) drawSig(v, thr);
+}
+function drawSig(v, thr) {
+  const c = $("sig"), W = c.clientWidth, H = c.clientHeight;
+  if (c.width !== W * 2) { c.width = W * 2; c.height = H * 2; }
+  const x = c.getContext("2d"); x.setTransform(2, 0, 0, 2, 0, 0); x.clearRect(0, 0, W, H);
+  let lo = 255, hi = 0; sigBuf.forEach(a => { lo = Math.min(lo, a[0], a[1]); hi = Math.max(hi, a[0], a[2]); });
+  hi += 5; lo = Math.max(0, lo - 5);
+  const Y = y => H - 4 - (y - lo) / (hi - lo || 1) * (H - 8), X = i => i / 239 * W;
+  [[2, "#ffb02088"], [1, "#8a94b488"], [0, "#2fd18a"]].forEach(([k, col]) => { x.strokeStyle = col; x.lineWidth = k ? 1 : 1.6; x.beginPath(); sigBuf.forEach((a, i) => i ? x.lineTo(X(i), Y(a[k])) : x.moveTo(X(i), Y(a[k]))); x.stroke(); });
+  $("sigLbl").textContent = `signal ${fmt(v, 0)} · ozadje ${fmt(baseline, 0)} · prag +${fmt(thr, 0)} · ${fmt(fps, 0)} sl/s`;
+}
+function camWarn(t) { $("camWarn").style.display = t ? "block" : "none"; $("camWarn").textContent = t; }
+function placeRoi() { const sz = +g("roiSz"); roi.style.width = roi.style.height = sz + "px"; roi.style.left = `calc(${S.roi.x * 100}% - ${sz / 2}px)`; roi.style.top = `calc(${S.roi.y * 100}% - ${sz / 2}px)`; }
+let flashT = 0;
+function flashRoi() { if (S.src !== "cam") { roi.classList.add("hit"); clearTimeout(flashT); flashT = setTimeout(() => roi.classList.remove("hit"), 120); } }
+(() => { // vlečenje okna
+  let drag = false;
+  const mv = e => { if (!drag) return; const r = $("vw").getBoundingClientRect(); S.roi.x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); S.roi.y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)); placeRoi(); };
+  roi.addEventListener("pointerdown", e => { drag = true; roi.setPointerCapture(e.pointerId); });
+  roi.addEventListener("pointermove", mv);
+  roi.addEventListener("pointerup", () => { drag = false; baseline = null; save(); });
+  $("vw").addEventListener("click", e => { if (e.target === roi) return; const r = $("vw").getBoundingClientRect(); S.roi.x = (e.clientX - r.left) / r.width; S.roi.y = (e.clientY - r.top) / r.height; placeRoi(); baseline = null; save(); });
+})();
+
+/* ===================== SIMULATOR ===================== */
+let simT = 0, simEv = [];
+function simLoad(t) {
+  const h = new Date(t).getHours() + new Date(t).getMinutes() / 60;
+  let p = 140 + 40 * Math.sin(t / 7e5);                       // osnova
+  p += ((t / 60000) % 22) < 8 ? 110 : 0;                      // hladilnik
+  if (h > 6 && h < 8 || h > 18 && h < 22) p += 350;           // jutro / večer
+  simEv = simEv.filter(e => e.end > t);
+  if (Math.random() < 1 / 900) simEv.push({p: [2100, 1800, 1200, 650][Math.floor(Math.random() * 4)], end: t + (60 + Math.random() * 400) * 1000});
+  simEv.forEach(e => p += e.p);
+  return p * (0.97 + Math.random() * 0.06);
+}
+function simStep() {
+  if (!S.run || S.src !== "sim") return;
+  const t = Date.now(), p = simLoad(t);
+  onPulse(t);
+  simT = setTimeout(simStep, whpp() * 3600000 / p);
+}
+
+/* ===================== ZAGON / USTAVITEV ===================== */
+let runStart = 0;
+async function start() {
+  stop(true);
+  S.src = $("src").value; S.run = true; runStart = Date.now();
+  lastPulse = 0; curP = null; dts = [];
+  if (S.src === "cam") { const ok = await camStart(); if (!ok) { S.run = false; } }
+  if (S.src === "sim") simStep();
+  if (S.run && g("kaWake")) wakeOn();
+  ui(); save();
+  if (S.run) { logm("Zagnano: " + $("src").selectedOptions[0].text); say("Števec zagnan."); }
+}
+function stop(silent) {
+  clearTimeout(simT); camStop(); S.run = false; curP = null;
+  wakeOff(); ui(); if (!silent) { save(); logm("Ustavljeno."); }
+}
+function ui() {
+  $("bStart").textContent = S.run ? "■ Ustavi" : "▶ Zaženi";
+  $("bStart").classList.toggle("pri", !S.run); $("bStart").classList.toggle("red", S.run);
+  $("camBox").style.display = $("src").value === "cam" ? "" : "none";
+  $("bTap").style.display = $("src").value === "tap" ? "" : "none";
+  $("srcLbl").textContent = S.run ? $("src").selectedOptions[0].text.split(" (")[0] : "ustavljeno";
+}
+
+/* ===================== STALNO DELOVANJE ===================== */
+let wake = null, wakeReq = 0, nosleepOn = false, hiddenSince = 0, userAct = Date.now();
+async function wakeOn() {
+  if (!g("kaWake")) return;
+  try { if ("wakeLock" in navigator && !wake) { wake = await navigator.wakeLock.request("screen"); wakeReq++; wake.addEventListener("release", () => { wake = null; }); } }
+  catch (e) { logm("Wake Lock: " + e.message); }
+  if (!wake) noSleep(true);
+}
+function wakeOff() { try { wake && wake.release(); } catch (e) {} wake = null; noSleep(false); }
+function noSleep(on) { // rezervni način: neskončen tih video iz platna
+  const v = $("nosleep");
+  if (on && !nosleepOn) {
+    try { const c = document.createElement("canvas"); c.width = c.height = 2; const x = c.getContext("2d"); setInterval(() => { x.fillStyle = Date.now() % 2000 > 1000 ? "#000" : "#010101"; x.fillRect(0, 0, 2, 2); }, 1000); v.srcObject = c.captureStream(1); v.play().then(() => { nosleepOn = true; }).catch(() => {}); } catch (e) {}
+  } else if (!on && nosleepOn) { v.pause(); v.srcObject = null; nosleepOn = false; }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { hiddenSince = Date.now(); save(); }
+  else {
+    if (hiddenSince && Date.now() - hiddenSince > 3000 && S.run && S.src === "cam") { $("bgWarn").style.display = "block"; logm("Vrnitev iz ozadja po " + Math.round((Date.now() - hiddenSince) / 1000) + " s."); }
+    hiddenSince = 0;
+    if (S.run) { wakeOn(); if (S.src === "cam" && (!track || track.readyState !== "live")) camRestart(); }
+  }
+});
+window.addEventListener("pagehide", save);
+window.addEventListener("beforeunload", save);
+function keepAliveTick(t) {
+  // nadzornik: kamera brez slik > 5 s → ponovni zagon
+  if (S.run && S.src === "cam" && g("kaRestart") && !document.hidden && stream && t - lastFrame > 5000) camRestart();
+  if (S.run && g("kaWake") && !wake && !document.hidden && "wakeLock" in navigator && t % 30000 < 1000) wakeOn();
+  if (g("kaDimAuto") && S.run && t - userAct > 120000 && !$("dim").classList.contains("on")) dimOn();
+  const up = S.run ? Math.floor((t - runStart) / 1000) : 0;
+  $("kaSt").innerHTML = [
+    ["Delovanje", S.run ? `${Math.floor(up / 3600)} h ${pad(Math.floor(up / 60) % 60)} min ${pad(up % 60)} s` : "ustavljeno"],
+    ["Zaslon", wake ? "Wake Lock aktiven" : nosleepOn ? "rezervni video" : "lahko ugasne"],
+    ["Kamera", S.src !== "cam" ? "–" : stream ? `${fmt(fps, 0)} sl/s, zadnja slika pred ${fmt((t - lastFrame) / 1000, 1)} s` : "izklopljena"],
+    ["Ponovni zagoni", camRestarts],
+    ["Zadnje shranjevanje", lastSave ? hm(lastSave) + ":" + pad(new Date(lastSave).getSeconds()) : "–"],
+    ["Povezava", location.protocol + (location.protocol === "file:" ? " (kamera ne bo delovala)" : "")]
+  ].map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join("");
+  const dot = $("stDot"); dot.className = "dot" + (S.run ? (S.src === "cam" && t - lastFrame > 3000 ? " err" : " on") : "");
+}
+function dimOn() { $("dim").classList.add("on"); }
+$("dim").addEventListener("click", () => { $("dim").classList.remove("on"); userAct = Date.now(); });
+["pointerdown", "keydown", "scroll"].forEach(ev => document.addEventListener(ev, () => userAct = Date.now(), {passive: true}));
+
+/* ===================== PRIKAZ ===================== */
+function projMonth() {
+  const n = new Date(), mk = monKey(n), dim = new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate();
+  let wh = 0, c = 0; for (const k in S.days) if (k.startsWith(mk)) { wh += dayWh(k); c += dayCost(k); }
+  const el = (n.getDate() - 1) + (n.getHours() * 60 + n.getMinutes()) / 1440;
+  if (el < 0.05) return null;
+  return {kwh: wh / 1000 / el * dim, eur: c / el * dim, now: wh / 1000, nowC: c};
+}
+function render() {
+  const t = Date.now(), p = powerNow();
+  $("pNow").innerHTML = (p == null ? "--" : fmt(p, p < 100 ? 1 : 0)) + "<small>W</small>";
+  $("dimP").textContent = p == null ? "--" : fmt(p, 0) + " W";
+  const dk = dayKey(t), yk = dayKey(t - 86400000);
+  $("kToday").textContent = fmt(dayWh(dk) / 1000, 3) + " kWh"; $("kTodayC").textContent = fmt(dayCost(dk), 2) + " €";
+  $("kYest").textContent = S.days[yk] ? fmt(dayWh(yk) / 1000, 2) + " kWh" : "–"; $("kYestC").textContent = S.days[yk] ? fmt(dayCost(yk), 2) + " €" : "";
+  const pr = projMonth();
+  if (pr) { $("kMonth").textContent = fmt(pr.now, 1) + " kWh"; $("kMonthC").textContent = fmt(pr.nowC, 2) + " €"; $("kProj").textContent = fmt(pr.kwh, 0) + " kWh"; $("kProjC").textContent = fmt(pr.eur, 2) + " €"; }
+  // min/max danes iz minutnih košev
+  const d0 = new Date(); d0.setHours(0, 0, 0, 0); const m0 = minIdx(d0.getTime()), m1 = minIdx(t);
+  let mn = null, mx = null; for (let i = m0; i <= m1; i++) { const m = S.minutes[i]; if (m && m[1] != null) { mn = mn == null ? m[1] : Math.min(mn, m[1]); mx = mx == null ? m[2] : Math.max(mx, m[2]); } }
+  $("kMinMax").textContent = mn == null ? "–" : fmt(mn, 0) + " / " + fmt(mx, 0);
+  // osnovna poraba: najnižje 30-min povprečje v zadnjih 24 h
+  let best = null; for (let s = m1 - 1440; s <= m1 - 30; s += 30) { let wh = 0, any = false; for (let i = s; i < s + 30; i++) if (S.minutes[i]) { wh += S.minutes[i][0]; any = true; } if (any) { const w = wh * 2; best = best == null ? w : Math.min(best, w); } }
+  $("kBase").textContent = best == null ? "–" : fmt(best, 0) + " W";
+  const last = secBuf.filter(s => s.t > t - 60000);
+  if (last.length) { const a = last.reduce((x, s) => x + s.p, 0) / last.length; $("k60").textContent = fmt(a, 0) + " W"; $("k60mm").textContent = fmt(Math.min(...last.map(s => s.p)), 0) + " / " + fmt(Math.max(...last.map(s => s.p)), 0) + " W"; }
+  $("kMeter").textContent = fmt(+g("meter0") + S.pulses * whpp() / 1000, 2) + " kWh"; $("kPulses").textContent = S.pulses.toLocaleString("sl-SI") + " imp";
+  $("dimS").textContent = "danes " + fmt(dayWh(dk) / 1000, 2) + " kWh · " + fmt(dayCost(dk), 2) + " €";
+  $("dataInfo").textContent = `Shranjeno: ${Object.keys(S.minutes).length} minut, ${Object.keys(S.hours).length} ur, ${Object.keys(S.days).length} dni.`;
+}
+
+/* ===================== GRAFI ===================== */
+const TABS = [
+  ["live5", "Živo 5 min"], ["live60", "Živo 1 h"], ["m15", "15 min · 24 h"], ["m30", "30 min · 24 h"], ["h1", "1 h · 24 h"],
+  ["h48", "1 h · 48 h"], ["wk", "Teden · ure"], ["d7", "7 dni"], ["mo", "Mesec · dnevi"], ["yr", "Leto · meseci"]];
+let graphTab = "m15", bars = [];
+$("gTabs").innerHTML = TABS.map(([k, n]) => `<button data-k="${k}">${n}</button>`).join("");
+$("gTabs").addEventListener("click", e => { const k = e.target.dataset.k; if (!k) return; graphTab = k; S.set.gTab = k; save(); drawGraph(); });
+$("gMode").addEventListener("change", () => { uiToSet(); save(); drawGraph(); });
+
+function series() {
+  const t = Date.now(), mode = g("gMode") || "e", out = [];
+  const conv = (wh, minutes, t0) => mode === "e" ? wh / 1000 : mode === "p" ? wh * 60 / minutes : wh / 1000 * price(t0);
+  if (graphTab.startsWith("live")) {
+    const span = graphTab === "live5" ? 300 : 3600; const step = graphTab === "live5" ? 1 : 30;
+    for (let s = t - span * 1000; s < t; s += step * 1000) {
+      const pts = secBuf.filter(x => x.t >= s && x.t < s + step * 1000);
+      out.push({t: s, v: pts.length ? pts.reduce((a, x) => a + x.p, 0) / pts.length : null, lbl: hm(s) + (step === 1 ? ":" + pad(new Date(s).getSeconds()) : ""), mn: pts.length ? Math.min(...pts.map(x => x.p)) : null, mx: pts.length ? Math.max(...pts.map(x => x.p)) : null});
+    }
+    return {pts: out, unit: "W", line: true};
+  }
+  if (["m15", "m30", "h1", "h48"].includes(graphTab)) {
+    const len = {m15: 15, m30: 30, h1: 60, h48: 60}[graphTab], tot = graphTab === "h48" ? 2880 : 1440;
+    const off = -new Date().getTimezoneOffset();
+    const endM = Math.floor((minIdx(t) + off) / len) * len - off + len;
+    for (let s = endM - tot; s < endM; s += len) {
+      let wh = 0, mx = null, mn = null, any = false;
+      for (let i = s; i < s + len; i++) { const m = S.minutes[i]; if (m) { any = true; wh += m[0]; if (m[2] != null) { mx = mx == null ? m[2] : Math.max(mx, m[2]); mn = mn == null ? m[1] : Math.min(mn, m[1]); } } }
+      out.push({t: s * 60000, v: any ? conv(wh, len, s * 60000) : 0, lbl: hm(s * 60000), mx, mn, mt: isMT(s * 60000)});
+    }
+  } else if (graphTab === "wk") {
+    const h0 = hourIdx(t) - 167;
+    for (let h = h0; h <= hourIdx(t); h++) { const wh = S.hours[h] || 0; const d = new Date(h * 3600000); out.push({t: h * 3600000, v: conv(wh, 60, h * 3600000), lbl: ["ned", "pon", "tor", "sre", "čet", "pet", "sob"][d.getDay()] + " " + pad(d.getHours()) + "h", mt: isMT(h * 3600000)}); }
+  } else if (graphTab === "d7" || graphTab === "mo") {
+    const n = graphTab === "d7" ? 7 : 31;
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i); const k = dayKey(d);
+      const v = mode === "e" ? dayWh(k) / 1000 : mode === "p" ? dayWh(k) / 24 : dayCost(k);
+      out.push({t: d.getTime(), v, lbl: d.getDate() + "." + (d.getMonth() + 1) + ".", sub: S.days[k] ? [S.days[k][0] / 1000, S.days[k][1] / 1000] : null});
+    }
+  } else if (graphTab === "yr") {
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(); d.setDate(1); d.setHours(12); d.setMonth(d.getMonth() - i); const mk = monKey(d);
+      let wh = 0, c = 0, nd = 0; for (const k in S.days) if (k.startsWith(mk)) { wh += dayWh(k); c += dayCost(k); nd++; }
+      const days = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      out.push({t: d.getTime(), v: mode === "e" ? wh / 1000 : mode === "p" ? wh / (days * 24) : c, lbl: ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "avg", "sep", "okt", "nov", "dec"][d.getMonth()] + " " + String(d.getFullYear()).slice(2), nd});
+    }
+  }
+  return {pts: out, unit: mode === "e" ? "kWh" : mode === "p" ? "W" : "€"};
+}
+function drawGraph() {
+  [...$("gTabs").children].forEach(b => b.classList.toggle("on", b.dataset.k === graphTab));
+  const cv = $("gCv"), W = cv.clientWidth, H = cv.clientHeight; if (!W) return;
+  const dpr = window.devicePixelRatio || 1;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const x = cv.getContext("2d"); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
+  const {pts, unit, line} = series();
+  const vals = pts.map(p => p.v).filter(v => v != null);
+  const maxV = Math.max(1e-9, ...vals, ...(line ? pts.map(p => p.mx || 0) : [])) * 1.1;
+  const L = 44, Rr = 6, T = 8, B = 26, pw = W - L - Rr, ph = H - T - B;
+  const Y = v => T + ph - v / maxV * ph;
+  x.font = "11px Inter,system-ui,sans-serif"; x.fillStyle = "#8a94b4"; x.strokeStyle = "#263055"; x.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const v = maxV / 4 * i, y = Y(v); x.beginPath(); x.moveTo(L, y); x.lineTo(W - Rr, y); x.stroke(); x.textAlign = "right"; x.fillText(fmtAxis(v, unit), L - 5, y + 4); }
+  const n = pts.length, bw = pw / n;
+  bars = pts.map((p, i) => ({x0: L + i * bw, x1: L + (i + 1) * bw, p}));
+  if (line) {
+    x.fillStyle = "#3d6bff22"; x.beginPath(); let st = false;
+    pts.forEach((p, i) => { if (p.mx == null) return; const X = L + (i + .5) * bw; if (!st) { x.moveTo(X, Y(p.mx)); st = true; } else x.lineTo(X, Y(p.mx)); });
+    for (let i = n - 1; i >= 0; i--) { const p = pts[i]; if (p.mn != null) x.lineTo(L + (i + .5) * bw, Y(p.mn)); }
+    x.fill();
+    x.strokeStyle = "#3d6bff"; x.lineWidth = 2; x.beginPath(); st = false;
+    pts.forEach((p, i) => { if (p.v == null) { st = false; return; } const X = L + (i + .5) * bw; st ? x.lineTo(X, Y(p.v)) : x.moveTo(X, Y(p.v)); st = true; }); x.stroke();
+  } else {
+    pts.forEach((p, i) => {
+      const X = L + i * bw + Math.max(.5, bw * .12), w = Math.max(1, bw * .76);
+      if (p.sub && g("gMode") === "e") { const h1 = p.sub[0] / maxV * ph, h2 = p.sub[1] / maxV * ph; x.fillStyle = "#ff8a3c"; x.fillRect(X, T + ph - h1, w, h1); x.fillStyle = "#6e8cff"; x.fillRect(X, T + ph - h1 - h2, w, h2); }
+      else { x.fillStyle = i === n - 1 ? "#9fb4ff" : (p.mt === undefined ? "#3d6bff" : p.mt ? "#6e8cff" : "#ff8a3c"); const y = Y(p.v || 0); x.fillRect(X, y, w, T + ph - y); }
+    });
+  }
+  if (vals.length) { const avg = vals.reduce((a, b) => a + b, 0) / vals.length; x.strokeStyle = "#ffb020"; x.setLineDash([4, 4]); x.beginPath(); x.moveTo(L, Y(avg)); x.lineTo(W - Rr, Y(avg)); x.stroke(); x.setLineDash([]); }
+  // oznake osi x
+  x.fillStyle = "#8a94b4"; x.textAlign = "center";
+  const every = Math.ceil(n / Math.max(2, Math.floor(pw / 58)));
+  pts.forEach((p, i) => { if ((n - 1 - i) % every === 0) x.fillText(p.lbl, L + (i + .5) * bw, H - 8); });
+  // povzetek
+  const sum = vals.reduce((a, b) => a + b, 0);
+  const mxp = pts.reduce((a, p) => (p.v != null && (a == null || p.v > a.v)) ? p : a, null);
+  $("gSum").textContent = line
+    ? (vals.length ? `Povprečje ${fmt(sum / vals.length, 0)} W · najvišje ${fmt(Math.max(...pts.map(p => p.mx || 0)), 0)} W · najnižje ${fmt(Math.min(...pts.filter(p => p.mn != null).map(p => p.mn)), 0)} W` : "Ni podatkov — zaženi števec.")
+    : `Skupaj ${unit === "W" ? "povp. " + fmt(sum / (vals.length || 1), 0) + " W" : fmt(sum, unit === "€" ? 2 : 2) + " " + unit} · največ ${mxp ? mxp.lbl + " (" + fmtAxis(mxp.v, unit) + ")" : "–"} · ${g("gMode") === "e" && (graphTab === "d7" || graphTab === "mo") ? "oranžno VT, modro MT" : (["m15","m30","h1","h48","wk"].includes(graphTab) ? "oranžno VT, modro MT" : "")} · črtkano povprečje`;
+}
+function fmtAxis(v, u) { if (u === "kWh") return v < 1 ? fmt(v * 1000, 0) + " Wh" : fmt(v, v < 10 ? 2 : 1) + " kWh"; if (u === "€") return fmt(v, 2) + " €"; return v >= 1000 ? fmt(v / 1000, 1) + " kW" : fmt(v, 0) + " W"; }
+(() => { // namig ob dotiku
+  const cv = $("gCv"), tip = $("gTip");
+  const show = e => {
+    const r = cv.getBoundingClientRect(), X = e.clientX - r.left, b = bars.find(b => X >= b.x0 && X < b.x1);
+    if (!b) { tip.style.display = "none"; return; }
+    const u = series().unit, p = b.p; let s = `${p.lbl}: ${p.v == null ? "–" : fmtAxis(p.v, graphTab.startsWith("live") ? "W" : u)}`;
+    if (p.mx != null) s += ` · min ${fmt(p.mn, 0)} / max ${fmt(p.mx, 0)} W`;
+    if (p.sub) s += ` · VT ${fmt(p.sub[0], 2)} / MT ${fmt(p.sub[1], 2)} kWh`;
+    tip.textContent = s; tip.style.display = "block";
+    tip.style.left = Math.min(r.width - tip.offsetWidth - 4, Math.max(4, X - tip.offsetWidth / 2)) + "px"; tip.style.top = "4px";
+  };
+  cv.addEventListener("pointermove", show); cv.addEventListener("pointerdown", show);
+  cv.addEventListener("pointerleave", () => tip.style.display = "none");
+})();
+const gro = new ResizeObserver(() => drawGraph()); gro.observe($("gFig"));
+
+/* ===================== PODATKI ===================== */
+function out(name, text, mime) { // prenos datoteke (če ga okolje dovoli) + kopiranje v odložišče
+  try { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], {type: mime})); a.download = name; document.body.appendChild(a); a.click(); a.remove(); } catch (e) {}
+  try { navigator.clipboard && navigator.clipboard.writeText(text).then(() => logm(name + " kopirano v odložišče.")).catch(() => {}); } catch (e) {}
+}
+$("bCsvM").onclick = () => {
+  const rows = ["cas;Wh;Pmin_W;Pmax_W"]; Object.keys(S.minutes).sort((a, b) => a - b).forEach(k => { const m = S.minutes[k], d = new Date(k * 60000); rows.push(`${dayKey(d)} ${hm(d)};${fmt(m[0], 2)};${m[1] == null ? "" : Math.round(m[1])};${m[2] == null ? "" : Math.round(m[2])}`); });
+  out("stevec_minute.csv", rows.join("\n"), "text/csv");
+};
+$("bCsvD").onclick = () => {
+  const rows = ["datum;VT_kWh;MT_kWh;skupaj_kWh;strosek_EUR"]; Object.keys(S.days).sort().forEach(k => { const d = S.days[k]; rows.push(`${k};${fmt(d[0] / 1000, 3)};${fmt(d[1] / 1000, 3)};${fmt(dayWh(k) / 1000, 3)};${fmt(dayCost(k), 2)}`); });
+  out("stevec_dnevi.csv", rows.join("\n"), "text/csv");
+};
+$("bJson").onclick = () => out("stevec_kopija_" + dayKey(Date.now()) + ".json", JSON.stringify(S), "application/json");
+$("fImp").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { const j = JSON.parse(await f.text()); if (!j.days || !j.minutes) throw new Error("ni varnostna kopija števca"); const run = S.run; Object.assign(S, j); S.run = run; setToUI(); uiToSet(); buildRules(); save(); drawGraph(); logm("Uvoženo: " + f.name); }
+  catch (err) { logm("Uvoz ni uspel: " + err.message); }
+};
+let resetArm = 0;
+$("bReset").onclick = () => {
+  if (Date.now() - resetArm > 4000) { resetArm = Date.now(); $("bReset").textContent = "Tapni še enkrat za brisanje"; setTimeout(() => $("bReset").textContent = "Pobriši vse", 4000); return; }
+  S.minutes = {}; S.hours = {}; S.days = {}; S.pulses = 0; secBuf.length = 0; save(); render(); drawGraph(); logm("Vsi podatki pobrisani."); $("bReset").textContent = "Pobriši vse";
+};
+let demoArm = 0;
+$("bDemo").onclick = () => {
+  if (Object.keys(S.days).length && Date.now() - demoArm > 4000) { demoArm = Date.now(); $("bDemo").textContent = "Prepiše zgodovino — tapni še enkrat"; setTimeout(() => $("bDemo").textContent = "Demo podatki (30 dni)", 4000); return; }
+  S.minutes = {}; S.hours = {}; S.days = {};
+  const now = Date.now(), from = minIdx(now) - 30 * 1440; simEv = [];
+  for (let m = from; m < minIdx(now); m++) {
+    const t = m * 60000; let p = 0; for (let k = 0; k < 4; k++) p += simLoad(t + k * 15000); p /= 4;
+    const wh = p / 60; const hi = hourIdx(t); S.hours[hi] = (S.hours[hi] || 0) + wh;
+    const dk = dayKey(t); const d = S.days[dk] || (S.days[dk] = [0, 0]); d[isMT(t) ? 1 : 0] += wh;
+    if (m > minIdx(now) - 8 * 1440) S.minutes[m] = [wh, p * 0.85, p * 1.2];
+  }
+  simEv = []; save(); render(); drawGraph(); logm("Ustvarjeni demo podatki za 30 dni."); $("bDemo").textContent = "Demo podatki (30 dni)";
+};
+
+/* ===================== DOGODKI UI ===================== */
+$("bStart").onclick = () => { S.run ? stop() : start(); };
+$("bTap").onclick = () => onPulse(Date.now());
+$("src").onchange = () => { if (S.run) start(); else { S.src = $("src").value; ui(); save(); } };
+$("camSel").onchange = () => { uiToSet(); save(); if (S.run && S.src === "cam") camRestart(); };
+$("roiSz").oninput = () => { uiToSet(); labels(); placeRoi(); };
+document.querySelectorAll("input,select").forEach(el => { if (el.id && SET_IDS.includes(el.id)) el.addEventListener("change", () => { uiToSet(); labels(); save(); render(); }); });
+["thr", "spRate", "spVol"].forEach(id => $(id).addEventListener("input", () => { uiToSet(); labels(); }));
+$("spVoice").onchange = () => { S.set.spVoice = $("spVoice").value; save(); };
+$("kaWake").onchange = () => { uiToSet(); save(); g("kaWake") && S.run ? wakeOn() : wakeOff(); };
+$("spOn").onchange = () => { uiToSet(); save(); if (g("spOn")) say("Govor vklopljen."); else synth && synth.cancel(); };
+$("spTest").onclick = () => { const o = S.set.spOn; S.set.spOn = true; say("Preizkus govora. Moč 1250 vatov. Danes 4,35 kilovatne ure.", true); S.set.spOn = o; };
+$("spNow").onclick = () => { const o = S.set.spOn; S.set.spOn = true; const t = Date.now(); say(ruleText({items: ["time", "p", "today", "cost", "proj"]}, {n: 0, e: 0}, t), true); S.set.spOn = o; };
+$("bDim").onclick = dimOn;
+$("bFs").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch (e) {} };
+
+/* ===================== ZAČETEK ===================== */
+load();
+if (!S.set.ppk) uiToSet(); // prvi zagon: privzete vrednosti iz HTML
+setToUI(); uiToSet(); labels(); buildRules(); placeRoi();
+graphTab = S.set.gTab || "m15";
+ui(); render(); drawGraph();
+setInterval(secondTick, 1000);
+if (S.run && g("kaAuto")) { logm("Samodejni zagon."); S.run = false; start(); } else S.run = false;
+logm("Števec elektrike " + VER + " pripravljen.");
+}
+</script>
+</body>
+</html>
