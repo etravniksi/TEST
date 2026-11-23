@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0f14">
+<title>kWh števec – LED</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#131a23; --line:#243040; --txt:#e8eef6; --dim:#8b9bb0;
+    --acc:#22d3a6; --warn:#f59e0b; --pulse:#38bdf8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg);color:var(--txt);overflow:hidden;overscroll-behavior:none;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    user-select:none;
+  }
+  #app{position:fixed;inset:0;display:flex;flex-direction:column}
+
+  /* ---------- zgornja statistika ---------- */
+  #stats{
+    display:flex;align-items:stretch;gap:1px;background:var(--line);
+    padding-top:env(safe-area-inset-top);
+  }
+  .stat{
+    flex:1;background:var(--bg);padding:8px 6px;text-align:center;min-width:0;
+  }
+  .stat b{display:block;font-variant-numeric:tabular-nums;line-height:1.05;font-weight:700}
+  #kwh{font-size:clamp(20px,7vw,34px);color:var(--acc)}
+  #watt{font-size:clamp(18px,6vw,30px);color:var(--warn)}
+  #pulses{font-size:clamp(18px,6vw,30px);color:var(--pulse)}
+  .stat small{display:block;font-size:11px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+
+  /* ---------- oder s kamero ---------- */
+  #stage{position:relative;flex:1;background:#000;overflow:hidden;touch-action:none}
+  #view,#overlay{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #overlay{touch-action:none;cursor:crosshair}
+  #video{position:absolute;width:2px;height:2px;opacity:.01;pointer-events:none;left:0;top:0}
+
+  #hint{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    background:rgba(0,0,0,.66);border:1px solid var(--line);border-radius:12px;
+    padding:12px 16px;font-size:14px;text-align:center;max-width:80%;line-height:1.4;
+    pointer-events:none;backdrop-filter:blur(4px);
+  }
+  #hint b{color:var(--acc)}
+
+  #hud{
+    position:absolute;top:8px;right:8px;font-size:12px;color:var(--dim);
+    background:rgba(0,0,0,.5);padding:4px 8px;border-radius:8px;pointer-events:none;
+    font-variant-numeric:tabular-nums;
+  }
+
+  #sigbar{
+    position:absolute;left:8px;right:8px;bottom:8px;height:8px;border-radius:4px;
+    background:rgba(255,255,255,.12);overflow:hidden;pointer-events:none;
+  }
+  #sigfill{height:100%;width:0%;background:linear-gradient(90deg,#22d3a6,#38bdf8);transition:width .04s linear}
+  #sigthr{position:absolute;top:-3px;width:2px;height:14px;background:var(--warn);left:0}
+  .nobar #sigbar{display:none}
+
+  #flash{
+    position:absolute;inset:0;background:var(--acc);opacity:0;pointer-events:none;
+    transition:opacity .28s ease-out;
+  }
+  #flash.on{opacity:.22;transition:none}
+
+  /* ---------- spodnja vrstica ---------- */
+  #bar{
+    display:flex;gap:8px;padding:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));
+    background:var(--panel);border-top:1px solid var(--line);
+  }
+  #bar button{
+    flex:1;padding:14px 6px;border-radius:12px;border:1px solid var(--line);
+    background:#1b2532;color:var(--txt);font-size:15px;font-weight:600;
+  }
+  #bar button:active{background:#26374a}
+  #bar button.primary{background:var(--acc);color:#04231b;border-color:var(--acc)}
+  #bar button.primary.stop{background:#ef4444;color:#fff;border-color:#ef4444}
+  #bar button.icon{flex:0 0 56px;font-size:19px}
+
+  /* ---------- nastavitve ---------- */
+  #panel{
+    position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;
+    z-index:50;backdrop-filter:blur(3px);
+  }
+  #panel.open{display:block}
+  #panelCard{
+    position:absolute;inset:0;margin:auto;max-width:520px;max-height:92%;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  #panelHead{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid var(--line);font-weight:700;
+  }
+  #panelHead button{background:none;border:none;color:var(--dim);font-size:20px;padding:4px 8px}
+  #panelBody{overflow-y:auto;padding:8px 16px 24px;-webkit-overflow-scrolling:touch}
+  .row{
+    display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #1c2531;
+    font-size:14px;
+  }
+  .row:last-child{border-bottom:none}
+  .row>span:first-child{flex:1;color:var(--dim)}
+  .row input[type=number],.row input[type=url],.row input[type=text]{
+    width:120px;background:#0e141c;border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:8px;font-size:15px;text-align:right;font-variant-numeric:tabular-nums;
+  }
+  .row input[type=url]{width:100%;text-align:left;font-size:13px}
+  .row input[type=range]{flex:2;accent-color:var(--acc)}
+  .row output{width:42px;text-align:right;font-variant-numeric:tabular-nums;color:var(--acc)}
+  select{background:#0e141c;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px;font-size:15px}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;padding-top:14px}
+  .btnrow button{
+    flex:1;min-width:120px;padding:12px;border-radius:10px;border:1px solid var(--line);
+    background:#1b2532;color:var(--txt);font-size:14px;font-weight:600;
+  }
+  .btnrow button.warn{background:#3a2416;border-color:#6b3f1c;color:#f6b26b}
+  .note{font-size:12px;color:var(--dim);line-height:1.5;padding-top:10px}
+  .full{display:flex;gap:8px;align-items:center;padding-top:12px}
+  .full input{flex:1}
+</style>
+</head>
+<body>
+<div id="app" class="nobar">
+
+  <header id="stats">
+    <div class="stat"><b id="kwh">0.000</b><small>kWh</small></div>
+    <div class="stat"><b id="watt">0</b><small>W</small></div>
+    <div class="stat"><b id="pulses">0</b><small>pulzov</small></div>
+  </header>
+
+  <main id="stage">
+    <video id="video" playsinline muted autoplay></video>
+    <canvas id="view"></canvas>
+    <canvas id="overlay"></canvas>
+    <div id="hud">–</div>
+    <div id="sigbar"><div id="sigfill"></div><div id="sigthr"></div></div>
+    <div id="flash"></div>
+    <div id="hint">Pritisni <b>Vklopi kamero</b><br>in nariši okvir okoli LED diode.</div>
+  </main>
+
+  <footer id="bar">
+    <button id="btnStart" class="primary">📷 Vklopi kamero</button>
+    <button id="btnCam" class="icon" title="Zamenjaj kamero">⇄</button>
+    <button id="btnFull" class="icon" title="Celoten zaslon">⛶</button>
+    <button id="btnSettings" class="icon" title="Nastavitve">⚙</button>
+  </footer>
+</div>
+
+<!-- ================= NASTAVITVE ================= -->
+<div id="panel">
+  <div id="panelCard">
+    <div id="panelHead"><span>Nastavitve</span><button id="btnClose">✕</button></div>
+    <div id="panelBody">
+
+      <label class="row">
+        <span>Pulzov na kWh</span>
+        <input id="inPpkwh" type="number" inputmode="numeric" min="1" step="1" value="1000">
+      </label>
+
+      <label class="row">
+        <span>Občutljivost</span>
+        <input id="inSens" type="range" min="1" max="100" value="55">
+        <output id="outSens">55</output>
+      </label>
+
+      <label class="row">
+        <span>Min. razmik pulzov</span>
+        <input id="inMinInt" type="number" inputmode="numeric" min="30" step="10" value="150">
+        <span style="color:var(--dim);font-size:12px">ms</span>
+      </label>
+
+      <label class="row">
+        <span>Način zaznave</span>
+        <select id="inChannel">
+          <option value="lum">Svetlost (bel/katerikoli LED)</option>
+          <option value="r">Rdeč kanal (rdeča LED)</option>
+        </select>
+      </label>
+
+      <label class="row">
+        <span>Kamera</span>
+        <select id="inFacing">
+          <option value="user">Sprednja</option>
+          <option value="environment">Zadnja</option>
+        </select>
+      </label>
+
+      <label class="row">
+        <span>Prikaz signala</span>
+        <input id="inDebug" type="checkbox" checked style="width:22px;height:22px;accent-color:var(--acc)">
+      </label>
+
+      <div class="row" style="display:block">
+        <span style="display:block;margin-bottom:8px">Pošiljanje na strežnik (neobvezno)</span>
+        <input id="inPostUrl" type="url" placeholder="https://… (POST JSON)" style="width:100%">
+        <div class="full">
+          <span style="color:var(--dim);font-size:13px">vsakih</span>
+          <input id="inPostInt" type="number" min="5" step="5" value="60" style="width:80px;text-align:right">
+          <span style="color:var(--dim);font-size:13px">sekund</span>
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button id="btnCalib">🎯 Samodejna kalibracija</button>
+        <button id="btnTest">⚡ Testni pulz</button>
+        <button id="btnClearRoi">▭ Pobriši okvir</button>
+        <button id="btnReset" class="warn">↺ Ponastavi števec</button>
+      </div>
+
+      <div class="note">
+        <b>Nasveti:</b><br>
+        • Okvir nariši tesno okoli LED diode (ne večji kot ~10&nbsp;% zaslona).<br>
+        • Telefon pritrdi tako, da je LED ves čas na istem mestu.<br>
+        • Če števec ne reagira, povečaj občutljivost; če šteje preveč, jo zmanjšaj.<br>
+        • Aplikacijo odpri prek <b>https://</b> ali <b>localhost</b> (kamera to zahteva).<br>
+        • Za stalno delovanje onemogoči samodejni spanec tudi v nastavitvah Androida.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================
+   kWh števec preko LED diode na električnem števcu
+   ========================================================= */
+
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => v<a?a:(v>b?b:v);
+
+const video   = $('video');
+const stage   = $('stage');
+const view    = $('view');
+const overlay = $('overlay');
+const vctx    = view.getContext('2d', { alpha:false });
+const octx    = overlay.getContext('2d');
+
+const elKwh    = $('kwh');
+const elWatt   = $('watt');
+const elPulses = $('pulses');
+const elHud    = $('hud');
+const elHint   = $('hint');
+const sigFill  = $('sigfill');
+const sigThr   = $('sigthr');
+const elFlash  = $('flash');
+
+/* ------------------- konfiguracija ------------------- */
+const LS_KEY = 'kwh-led-v1';
+const SAMPLE_N = 24;           // ločljivost vzorčenja ROI (24x24 pik)
+
+let cfg = {
+  ppkwh: 1000,
+  sensitivity: 55,
+  minInterval: 150,
+  channel: 'lum',
+  facing: 'user',
+  postUrl: '',
+  postInterval: 60,
+  debug: true
+};
+
+let roi = null;                // {x,y,w,h} normalizirano na sliko kamere (0..1)
+let pulses = 0;                // skupno število pulzov
+let history = [];              // časovni žigi pulzov (ms)
+let lastPulseAt = 0;
+let armed = true;
+let running = false;
+let baseline = 0;
+let noise = 1;
+let signalVal = 0;
+let effThreshold = 0;
+let calib = null;
+let stream = null;
+let wakeLock = null;
+let lastSampleAt = 0;
+let lastPostAt = 0;
+let saveTimer = null;
+let dragging = null;
+let camReady = false;
+
+/* ------------------- shranjevanje ------------------- */
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(d.cfg) Object.assign(cfg, d.cfg);
+    if(d.roi) roi = d.roi;
+    if(typeof d.pulses === 'number') pulses = d.pulses;
+    if(Array.isArray(d.history)) history = d.history.slice(-500);
+    lastPulseAt = history.length ? history[history.length-1] : 0;
+  }catch(e){}
+}
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try{
+      localStorage.setItem(LS_KEY, JSON.stringify({cfg, roi, pulses, history: history.slice(-500)}));
+    }catch(e){}
+  }, 250);
+}
+
+/* ------------------- kamera ------------------- */
+function mirror(){ return cfg.facing === 'user'; }
+
+async function startCamera(){
+  try{
+    stopCamera();
+    const constraints = {
+      audio: false,
+      video: {
+        facingMode: cfg.facing === 'user' ? 'user' : { ideal:'environment' },
+        width:  { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    await video.play();
+
+    // poskusi vklopiti neprekinjeno ostrenje (pomembno za makro posnetek LED)
+    const track = stream.getVideoTracks()[0];
+    try{
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      if(caps.focusMode && caps.focusMode.includes('continuous')){
+        await track.applyConstraints({ advanced:[{ focusMode:'continuous' }] });
+      }
+    }catch(_){}
+
+    camReady = true;
+    elHint.style.display = roi ? 'none' : 'block';
+    resizeCanvases();
+    updateButton();
+    await requestWakeLock();
+  }catch(err){
+    camReady = false;
+    alert('Kamera ni dostopna:\n' + err.message +
+          '\n\nAplikacijo odpri prek https:// ali localhost.');
+    updateButton();
+  }
+}
+function stopCamera(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+  camReady = false;
+}
+
+/* ------------------- Wake Lock (prepreči spanje) ------------------- */
+async function requestWakeLock(){
+  if(!('wakeLock' in navigator)) return;
+  try{
+    if(wakeLock) return;
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', ()=>{ wakeLock = null; });
+  }catch(e){ /* ni podpore */ }
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden) requestWakeLock();
+});
+
+/* ------------------- geometrija ------------------- */
+function getVideoRect(){
+  const cw = view.width || 1, ch = view.height || 1;
+  const vw = video.videoWidth || 16, vh = video.videoHeight || 9;
+  const scale = Math.min(cw/vw, ch/vh);
+  const dw = vw*scale, dh = vh*scale;
+  return { dx:(cw-dw)/2, dy:(ch-dh)/2, dw, dh, cw, ch };
+}
+function videoNormToCanvas(nx, ny){
+  const {dx,dy,dw,dh} = getVideoRect();
+  let x = nx; if(mirror()) x = 1-x;
+  return { x: dx + x*dw, y: dy + ny*dh };
+}
+function canvasToVideoNorm(px, py){
+  const {dx,dy,dw,dh} = getVideoRect();
+  let fx = (px-dx)/dw;
+  if(mirror()) fx = 1-fx;
+  return { x: fx, y: (py-dy)/dh };
+}
+function resizeCanvases(){
+  const r = stage.getBoundingClientRect();
+  const w = Math.max(1, Math.round(r.width));
+  const h = Math.max(1, Math.round(r.height));
+  if(view.width !== w || view.height !== h){
+    view.width = w; view.height = h;
+    overlay.width = w; overlay.height = h;
+  }
+}
+new ResizeObserver(resizeCanvases).observe(stage);
+
+/* ------------------- risanje slike ------------------- */
+function drawView(){
+  const cw = view.width, ch = view.height;
+  if(!cw || !ch) return;
+  vctx.fillStyle = '#000';
+  vctx.fillRect(0,0,cw,ch);
+  if(video.readyState < 2 || !video.videoWidth) return;
+  const {dx,dy,dw,dh} = getVideoRect();
+  if(mirror()){
+    vctx.save();
+    vctx.translate(dx+dw, dy);
+    vctx.scale(-1,1);
+    vctx.drawImage(video, 0, 0, dw, dh);
+    vctx.restore();
+  }else{
+    vctx.drawImage(video, dx, dy, dw, dh);
+  }
+}
+
+/* ------------------- risanje okvirja ROI ------------------- */
+function drawOverlay(){
+  octx.clearRect(0,0,overlay.width,overlay.height);
+  let r = null;
+
+  if(dragging){
+    r = dragRect(dragging);
+  }else if(roi && video.videoWidth){
+    const a = videoNormToCanvas(roi.x, roi.y);
+    const b = videoNormToCanvas(roi.x+roi.w, roi.y+roi.h);
+    r = { x:Math.min(a.x,b.x), y:Math.min(a.y,b.y), w:Math.abs(b.x-a.x), h:Math.abs(b.y-a.y) };
+  }
+  if(!r || r.w < 1 || r.h < 1) return;
+
+  octx.save();
+  octx.lineWidth = 2;
+  octx.strokeStyle = running ? 'rgba(34,211,166,.95)' : 'rgba(56,189,248,.95)';
+  octx.setLineDash([8,6]);
+  octx.strokeRect(r.x, r.y, r.w, r.h);
+  octx.setLineDash([]);
+
+  // vogali
+  const c = Math.min(18, r.w/3, r.h/3);
+  octx.lineWidth = 3;
+  octx.strokeStyle = octx.strokeStyle;
+  const corners = [
+    [r.x, r.y, 1, 1], [r.x+r.w, r.y, -1, 1],
+    [r.x, r.y+r.h, 1, -1], [r.x+r.w, r.y+r.h, -1, -1]
+  ];
+  for(const [cx,cy,sx,sy] of corners){
+    octx.beginPath();
+    octx.moveTo(cx + sx*c, cy);
+    octx.lineTo(cx, cy);
+    octx.lineTo(cx, cy + sy*c);
+    octx.stroke();
+  }
+
+  // oznaka
+  if(r.w > 70){
+    octx.font = '600 11px system-ui,sans-serif';
+    octx.fillStyle = 'rgba(0,0,0,.6)';
+    const tw = octx.measureText('ZAZNAVA').width + 12;
+    octx.fillRect(r.x, r.y-17, tw, 16);
+    octx.fillStyle = '#e8eef6';
+    octx.fillText('ZAZNAVA', r.x+6, r.y-5);
+  }
+  octx.restore();
+}
+
+/* ------------------- interakcija z ROI ------------------- */
+function posFromEvent(e){
+  const rect = overlay.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+function dragRect(d){
+  return { x: Math.min(d.x0,d.x1), y: Math.min(d.y0,d.y1),
+           w: Math.abs(d.x1-d.x0), h: Math.abs(d.y1-d.y0) };
+}
+overlay.addEventListener('pointerdown', e=>{
+  if(!camReady) return;
+  overlay.setPointerCapture(e.pointerId);
+  const p = posFromEvent(e);
+  dragging = { x0:p.x, y0:p.y, x1:p.x, y1:p.y };
+  e.preventDefault();
+});
+overlay.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const p = posFromEvent(e);
+  dragging.x1 = p.x; dragging.y1 = p.y;
+  e.preventDefault();
+});
+overlay.addEventListener('pointerup', e=>{
+  if(!dragging) return;
+  const r = dragRect(dragging);
+  dragging = null;
+  if(r.w > 14 && r.h > 14){
+    const a = canvasToVideoNorm(r.x, r.y);
+    const b = canvasToVideoNorm(r.x+r.w, r.y+r.h);
+    roi = {
+      x: clamp(Math.min(a.x,b.x),0,1),
+      y: clamp(Math.min(a.y,b.y),0,1),
+      w: clamp(Math.abs(b.x-a.x),0,1),
+      h: clamp(Math.abs(b.y-a.y),0,1)
+    };
+    elHint.style.display = 'none';
+    startCalibration();
+    save();
+  }
+  e.preventDefault();
+});
+overlay.addEventListener('pointercancel', ()=>{ dragging = null; });
+
+/* ------------------- vzorčenje signala ------------------- */
+const sampleCanvas = document.createElement('canvas');
+sampleCanvas.width = sampleCanvas.height = SAMPLE_N;
+const sctx = sampleCanvas.getContext('2d', { willReadFrequently:true });
+const hist = new Uint16Array(256);
+
+function sampleSignal(){
+  if(!roi || video.readyState < 2) return null;
+  const a = videoNormToCanvas(roi.x, roi.y);
+  const b = videoNormToCanvas(roi.x+roi.w, roi.y+roi.h);
+  const W = view.width, H = view.height;
+
+  let x = Math.min(a.x,b.x), y = Math.min(a.y,b.y);
+  let w = Math.abs(b.x-a.x), h = Math.abs(b.y-a.y);
+  x = clamp(x, 0, W-1); y = clamp(y, 0, H-1);
+  w = clamp(w, 1, W-x); h = clamp(h, 1, H-y);
+  if(w < 2 || h < 2) return null;
+
+  sctx.drawImage(view, x, y, w, h, 0, 0, SAMPLE_N, SAMPLE_N);
+  const d = sctx.getImageData(0,0,SAMPLE_N,SAMPLE_N).data;
+
+  hist.fill(0);
+  const useR = (cfg.channel === 'r');
+  for(let i=0; i<d.length; i+=4){
+    let v;
+    if(useR) v = d[i];
+    else v = d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114;
+    v = v|0; if(v > 255) v = 255; if(v < 0) v = 0;
+    hist[v]++;
+  }
+
+  // povprečje najsvetlejših 8 % pik (robustno na velikost LED v okvirju)
+  const total = SAMPLE_N*SAMPLE_N;
+  const need = Math.max(4, Math.round(total*0.08));
+  let acc = 0, cnt = 0;
+  for(let v=255; v>=0 && cnt<need; v--){
+    const c = hist[v];
+    if(!c) continue;
+    const take = Math.min(c, need-cnt);
+    acc += take*v; cnt += take;
+  }
+  return cnt ? acc/cnt : 0;
+}
+
+/* ------------------- zaznava ------------------- */
+function sensThreshold(){
+  // občutljivost 1..100  ->  prag 40 .. 3
+  return Math.max(2.5, 40 - (cfg.sensitivity-1) * (37/99));
+}
+function startCalibration(ms){
+  ms = ms || 900;
+  calib = { end: Date.now()+ms, min: 999 };
+  armed = true;
+}
+function resetDetection(){
+  calib = null;
+  armed = true;
+  baseline = 0;
+  noise = 1;
+}
+
+function analyze(sig, now){
+  signalVal = sig;
+
+  // kalibracija: vzemi najtemnejšo vrednost kot osnovno linijo
+  if(calib){
+    if(sig < calib.min) calib.min = sig;
+    if(now >= calib.end){
+      baseline = (calib.min < 900) ? calib.min : sig;
+      noise = 1;
+      armed = true;
+      calib = null;
+    }
+    return;
+  }
+
+  effThreshold = Math.max(sensThreshold(), noise * 4);
+  const delta = sig - baseline;
+
+  if(!armed){
+    // čakamo, da LED ugasne
+    if(delta < effThreshold*0.45){
+      armed = true;
+    }else if(now - lastPulseAt > 3000){
+      // varnost: če je predolgo "vklopljena", ponovno umeri
+      armed = true;
+      baseline = sig;
+      noise = 1;
+    }
+    return;
+  }
+
+  if(delta > effThreshold && now - lastPulseAt > cfg.minInterval){
+    armed = false;
+    registerPulse(now);
+    return;
+  }
+
+  // počasno sledenje osnovni liniji in šumu
+  baseline += (sig - baseline) * 0.05;
+  noise += (Math.abs(sig - baseline) - noise) * 0.02;
+  if(noise < 0.5) noise = 0.5;
+}
+
+function registerPulse(now){
+  lastPulseAt = now;
+  pulses++;
+  history.push(now);
+  if(history.length > 500) history.shift();
+  flash();
+  updateStats();
+  save();
+}
+
+function flash(){
+  elFlash.classList.add('on');
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=> elFlash.classList.remove('on'));
+  });
+}
+
+/* ------------------- izračuni ------------------- */
+function currentPower(){
+  if(history.length < 2) return 0;
+  const now = Date.now();
+  const n = Math.min(8, history.length-1);
+  const first = history[history.length-1-n];
+  const last  = history[history.length-1];
+  const dt = (last - first) / n;           // ms med pulzi
+  if(!dt || dt <= 0) return 0;
+  if(now - last > Math.max(15000, dt*5)) return 0;   // ni več aktivnosti
+  return 3.6e9 / ((cfg.ppkwh || 1) * dt);  // W
+}
+
+/* ------------------- posodobitev UI ------------------- */
+function updateStats(){
+  const kwh = pulses / (cfg.ppkwh || 1);
+  elKwh.textContent = kwh.toFixed(3);
+  elPulses.textContent = pulses;
+
+  const p = currentPower();
+  elWatt.textContent = p >= 10000 ? (p/1000).toFixed(1)+'k' : Math.round(p);
+
+  if(lastPulseAt){
+    const s = Math.round((Date.now()-lastPulseAt)/1000);
+    elHud.textContent = 'zadnji pulz: ' + (s < 60 ? s+' s' : Math.floor(s/60)+' min') + ' nazaj';
+  }else{
+    elHud.textContent = 'ni še pulza';
+  }
+}
+
+function updateSignalBar(){
+  if(!cfg.debug){ return; }
+  const v = clamp(signalVal, 0, 255);
+  sigFill.style.width = (v/255*100) + '%';
+  const t = clamp(baseline + effThreshold, 0, 255);
+  sigThr.style.left = (t/255*100) + '%';
+}
+
+/* ------------------- pošiljanje na strežnik ------------------- */
+async function maybePost(){
+  if(!cfg.postUrl) return;
+  const now = Date.now();
+  if(now - lastPostAt < cfg.postInterval*1000) return;
+  lastPostAt = now;
+  const body = JSON.stringify({
+    ts: new Date().toISOString(),
+    pulses: pulses,
+    kwh: +(pulses/(cfg.ppkwh||1)).toFixed(6),
+    watts: Math.round(currentPower()),
+    ppkwh: cfg.ppkwh
+  });
+  try{
+    await fetch(cfg.postUrl, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: body,
+      keepalive: true
+    });
+  }catch(e){ /* tiho */ }
+}
+
+/* ------------------- glavna zanka ------------------- */
+let lastFrameTs = 0;
+function loop(){
+  requestAnimationFrame(loop);
+  drawView();
+
+  const now = performance.now();
+  if(running && roi && video.readyState >= 2){
+    if(now - lastFrameTs >= 30){          // ~33 vzorcev/s
+      lastFrameTs = now;
+      const sig = sampleSignal();
+      if(sig !== null) analyze(sig, Date.now());
+    }
+  }
+  drawOverlay();
+  updateSignalBar();
+}
+
+/* ------------------- stanje gumba ------------------- */
+function updateButton(){
+  const b = $('btnStart');
+  b.classList.remove('stop');
+  if(!camReady){
+    b.textContent = '📷 Vklopi kamero';
+    b.classList.add('primary');
+  }else if(!running){
+    b.textContent = '▶ Začni štetje';
+    b.classList.add('primary');
+  }else{
+    b.textContent = '⏸ Ustavi';
+    b.classList.add('stop');
+  }
+}
+
+/* ------------------- UI dogodki ------------------- */
+$('btnStart').addEventListener('click', async ()=>{
+  if(!camReady){
+    await startCamera();
+    return;
+  }
+  running = !running;
+  if(running){
+    if(!roi){ running = false; elHint.style.display='block'; updateButton(); return; }
+    startCalibration(1200);
+    await requestWakeLock();
+  }
+  updateButton();
+});
+
+$('btnCam').addEventListener('click', async ()=>{
+  cfg.facing = (cfg.facing === 'user') ? 'environment' : 'user';
+  $('inFacing').value = cfg.facing;
+  save();
+  if(camReady) await startCamera();
+});
+
+$('btnFull').addEventListener('click', async ()=>{
+  try{
+    if(!document.fullscreenElement){
+      await document.documentElement.requestFullscreen();
+      if(screen.orientation && screen.orientation.lock){
+        try{ await screen.orientation.lock('portrait'); }catch(_){}
+      }
+    }else{
+      await document.exitFullscreen();
+    }
+  }catch(e){}
+});
+
+$('btnSettings').addEventListener('click', ()=>{
+  $('panel').classList.add('open');
+});
+$('btnClose').addEventListener('click', ()=>{
+  $('panel').classList.remove('open');
+});
+$('panel').addEventListener('click', e=>{
+  if(e.target === $('panel')) $('panel').classList.remove('open');
+});
+
+/* --- vezava nastavitev --- */
+function bindNumber(id, key, transform){
+  const el = $(id);
+  el.value = cfg[key];
+  el.addEventListener('input', ()=>{
+    let v = parseFloat(el.value);
+    if(isNaN(v)) return;
+    if(transform) v = transform(v);
+    cfg[key] = v;
+    if(key === 'ppkwh') updateStats();
+    save();
+  });
+}
+bindNumber('inPpkwh','ppkwh', v=>Math.max(1, Math.round(v)));
+bindNumber('inMinInt','minInterval', v=>Math.max(30, Math.round(v)));
+bindNumber('inPostInt','postInterval', v=>Math.max(5, Math.round(v)));
+
+const inSens = $('inSens'), outSens = $('outSens');
+inSens.value = cfg.sensitivity;
+outSens.textContent = cfg.sensitivity;
+inSens.addEventListener('input', ()=>{
+  cfg.sensitivity = parseInt(inSens.value,10);
+  outSens.textContent = cfg.sensitivity;
+  save();
+});
+
+const inChannel = $('inChannel');
+inChannel.value = cfg.channel;
+inChannel.addEventListener('change', ()=>{
+  cfg.channel = inChannel.value;
+  startCalibration();
+  save();
+});
+
+const inFacing = $('inFacing');
+inFacing.value = cfg.facing;
+inFacing.addEventListener('change', async ()=>{
+  cfg.facing = inFacing.value;
+  save();
+  if(camReady) await startCamera();
+});
+
+const inDebug = $('inDebug');
+inDebug.checked = cfg.debug;
+inDebug.addEventListener('change', ()=>{
+  cfg.debug = inDebug.checked;
+  document.getElementById('app').classList.toggle('nobar', !cfg.debug);
+  save();
+});
+
+const inPostUrl = $('inPostUrl');
+inPostUrl.value = cfg.postUrl || '';
+inPostUrl.addEventListener('change', ()=>{
+  cfg.postUrl = inPostUrl.value.trim();
+  save();
+});
+
+$('btnCalib').addEventListener('click', ()=>{
+  startCalibration(1500);
+  elHud.textContent = 'kalibracija…';
+});
+
+$('btnTest').addEventListener('click', ()=>{
+  registerPulse(Date.now());
+  flash();
+});
+
+$('btnClearRoi').addEventListener('click', ()=>{
+  roi = null;
+  resetDetection();
+  elHint.style.display = 'block';
+  save();
+});
+
+$('btnReset').addEventListener('click', ()=>{
+  if(!confirm('Ponastavim števec pulzov in kWh na 0?')) return;
+  pulses = 0;
+  history = [];
+  lastPulseAt = 0;
+  resetDetection();
+  updateStats();
+  save();
+});
+
+/* ------------------- zagon ------------------- */
+function init(){
+  load();
+
+  // nastavi vrednosti v obrazcih
+  $('inPpkwh').value = cfg.ppkwh;
+  $('inMinInt').value = cfg.minInterval;
+  $('inPostInt').value = cfg.postInterval;
+  inSens.value = cfg.sensitivity;
+  outSens.textContent = cfg.sensitivity;
+  inChannel.value = cfg.channel;
+  inFacing.value = cfg.facing;
+  inDebug.checked = cfg.debug;
+  inPostUrl.value = cfg.postUrl || '';
+  document.getElementById('app').classList.toggle('nobar', !cfg.debug);
+
+  if(roi) elHint.style.display = 'none';
+
+  resizeCanvases();
+  updateStats();
+  updateButton();
+  requestAnimationFrame(loop);
+
+  // poskusi samodejno vklopiti kamero (če je dovoljenje že shranjeno)
+  startCamera().catch(()=>{});
+
+  // periodično osveževanje prikaza
+  setInterval(()=>{ updateStats(); maybePost(); }, 500);
+
+  // prepreči nehotene geste (zoom, scroll)
+  document.addEventListener('gesturestart', e=>e.preventDefault());
+  document.addEventListener('dblclick', e=>e.preventDefault(), {passive:false});
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
