@@ -4,17 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0d18">
-<title>Števec elektrike SEV1B</title>
-<!-- Števec elektrike SEV1B — LED impulzi s kamero, grafi, govor, stalno delovanje -->
+<title>Števec elektrike SEV10B</title>
+<!-- Števec elektrike SEV10B — LED impulzi s kamero, grafi, govor, stalno delovanje -->
 <style>
-:root{--bg:#0a0d18;--pan:#121829;--pan2:#18203a;--ink:#e8ecf8;--dim:#8a94b4;--line:#263055;--acc:#3d6bff;--acc2:#1240e0;--hot:#ff5a3c;--ok:#2fd18a;--warn:#ffb020;--mt:#6e8cff;--vt:#ff8a3c}
+:root{--bg:#0a0d18;--pan:#121829;--pan2:#18203a;--ink:#e8ecf8;--dim:#8a94b4;--line:#263055;--acc:#3d6bff;--acc2:#1240e0;--hot:#ff5a3c;--ok:#2fd18a;--warn:#ffb020;--mt:#6e8cff;--vt:#ff8a3c;--field:#0d1222;--hl:#9fb4ff;--topink:#ffffff;--wbg:#3a2a08;--wbd:#6a4a10;--wink:#ffd890;--redb:#5a1a12;--redbd:#8a2a1a;--onacc:#ffffff}
 *{box-sizing:border-box;min-width:0}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,Roboto,Arial,sans-serif;overflow-x:clip}
 h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px}
 h2{font-size:15px;margin:0 0 10px;font-weight:700}
-.top{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--acc2);position:sticky;top:0;z-index:20}
-.top .ver{font-size:12px;opacity:.8}
+.top{color:var(--topink);display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--acc2);position:sticky;top:0;z-index:20}
+.top .ver{font-size:13px;font-weight:700;background:rgba(0,0,0,.25);border-radius:6px;padding:2px 7px}
+.vtag{position:absolute;right:12px;top:10px;font-size:12px;color:#2a3150}
 .top .sp{flex:1}
+.top button{padding:6px 9px;min-height:40px;font-size:15px;flex:none}
+@media(max-width:420px){.top{gap:6px;padding:8px 10px}.top h1{font-size:16px}.top .ver{font-size:12px;padding:2px 5px}}
 .dot{width:10px;height:10px;border-radius:50%;background:#555;flex:none}
 .dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 .dot.err{background:var(--hot)}
@@ -31,10 +34,10 @@ h2{font-size:15px;margin:0 0 10px;font-weight:700}
 .k span{font-size:12px;color:var(--dim)}
 button,select,input{font:inherit;font-size:16px;color:var(--ink)}
 button{background:var(--pan2);border:1px solid var(--line);border-radius:9px;padding:9px 13px;min-height:44px;cursor:pointer}
-button.pri{background:var(--acc);border-color:var(--acc);font-weight:700}
-button.red{background:#5a1a12;border-color:#8a2a1a}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #9fb4ff;outline-offset:2px}
-select,input[type=number],input[type=text],input[type=time]{background:#0d1222;border:1px solid var(--line);border-radius:8px;padding:8px;min-height:42px;width:100%}
+button.pri{background:var(--acc);border-color:var(--acc);font-weight:700;color:var(--onacc)}
+button.red{background:var(--redb);border-color:var(--redbd)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+select,input[type=number],input[type=text],input[type=time]{background:var(--field);border:1px solid var(--line);border-radius:8px;padding:8px;min-height:42px;width:100%}
 input[type=range]{width:100%}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .row>*{flex:1 1 auto}
@@ -44,7 +47,7 @@ input[type=range]{width:100%}
 .chk input{width:20px;height:20px;flex:none}
 .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
 .tabs button{flex:none;min-height:38px;padding:6px 11px;font-size:14px}
-.tabs button.on{background:var(--acc);border-color:var(--acc)}
+.tabs button.on{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
 .fig{position:relative;height:260px;margin-top:6px}
 .fig canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y}
 .tip{position:absolute;pointer-events:none;background:#000c;border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:12px;white-space:nowrap;display:none;z-index:3}
@@ -52,8 +55,8 @@ input[type=range]{width:100%}
 #vw video{width:100%;height:100%;object-fit:cover;display:block}
 #roi{position:absolute;border:2px solid var(--ok);border-radius:6px;touch-action:none;cursor:move;box-shadow:0 0 0 2000px #0006}
 #roi.hit{border-color:var(--hot);background:#ff5a3c33}
-#sig{width:100%;height:70px;display:block;margin-top:8px;background:#0d1222;border-radius:8px}
-.log{font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;max-height:150px;overflow:auto;background:#0d1222;border-radius:8px;padding:6px;color:#b9c3e6;white-space:pre-wrap}
+#sig{width:100%;height:70px;display:block;margin-top:8px;background:var(--field);border-radius:8px}
+.log{font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;max-height:150px;overflow:auto;background:var(--field);border-radius:8px;padding:6px;color:var(--dim);white-space:pre-wrap}
 .rules{display:grid;gap:8px}
 .rule{background:var(--pan2);border-radius:9px;padding:8px 10px}
 .rule .items{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px}
@@ -65,16 +68,43 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 #dim{position:fixed;inset:0;background:#000;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;color:#3a4a7a;text-align:center}
 #dim .big{color:#4a5f9e}
 #dim.on{display:flex}
+.pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px}
+.pal button{display:flex;flex-direction:column;align-items:flex-start;gap:7px;text-align:left;padding:9px 10px;font-size:14px;font-weight:600}
+.pal button.on{outline:3px solid var(--hl);outline-offset:1px}
+.pal .sw{display:flex;gap:4px}.pal .sw i{width:16px;height:16px;border-radius:50%;display:block;border:1px solid #0003}
+.pan{position:relative}
+.pan[data-help]>:first-child{padding-right:44px}
+.hbtn{position:absolute;top:8px;right:8px;width:36px;height:36px;min-height:36px;padding:0;border-radius:50%;font-weight:800;font-size:17px;background:var(--pan2);color:var(--hl)}
+#helpOv{position:fixed;inset:0;background:#000b;z-index:70;display:none;align-items:flex-start;justify-content:center;padding:12px}
+#helpOv.on{display:flex}
+#helpBox{background:var(--pan);border:1px solid var(--line);border-radius:14px;width:100%;max-width:760px;max-height:calc(100vh - 24px);display:flex;flex-direction:column}
+#helpHead{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--line)}
+#helpHead h2{margin:0;flex:1;font-size:17px}
+#helpB{overflow:auto;padding:4px 16px 20px;font-size:15px;line-height:1.55}
+#helpB h3{font-size:15px;margin:18px 0 6px;color:var(--hl)}
+#helpB p{margin:6px 0}
+#helpB ul,#helpB ol{margin:6px 0;padding-left:22px}
+#helpB li{margin:4px 0}
+#helpB .hf{font-weight:700;background:var(--pan2);border-radius:8px;padding:8px 10px;display:inline-block}
+#ledOv{position:fixed;inset:0;background:#000;z-index:60;display:none;flex-direction:column;align-items:center;touch-action:manipulation}
+#ledOv.on{display:flex}
+#ledDot{margin-top:18vh;border-radius:50%;background:#1a0606;flex:none}
+#ledInfo{margin-top:8vh;display:flex;flex-direction:column;align-items:center;gap:4px;color:#3a4366;font-variant-numeric:tabular-nums}
+#ledNow{font-size:30px;font-weight:700}
+#ledCtl{position:absolute;left:0;right:0;bottom:0;padding:14px 16px 22px;background:#06080f;border-top:1px solid #141a2e;color:#5a6488}
+#ledCtl label{font-size:13px}
+#ledCtl button{background:#0c1020;border-color:#1a2140;color:#7a84a8}
 .badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:11px;background:var(--pan2);color:var(--dim);margin-left:6px}
-.warnbox{background:#3a2a08;border:1px solid #6a4a10;border-radius:8px;padding:8px;font-size:13px;color:#ffd890;display:none;margin-top:8px}
+.warnbox{background:var(--wbg);border:1px solid var(--wbd);border-radius:8px;padding:8px;font-size:13px;color:var(--wink);display:none;margin-top:8px}
 @media(max-width:600px){.wrap{padding:8px}.fig{height:220px}}
 </style>
 </head>
 <body>
 <div class="top">
   <span class="dot" id="stDot"></span>
-  <h1>Števec elektrike</h1><span class="ver">SEV1B</span>
+  <h1>Števec elektrike</h1><span class="ver" id="verTop">SEV10B</span>
   <span class="sp"></span>
+  <button id="bHelp" title="Pomoč">Pomoč</button>
   <button id="bDim" title="Temni zaslon">Temni</button>
   <button id="bFs" title="Celozaslonsko">⛶</button>
 </div>
@@ -83,7 +113,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 <div class="grid">
 
 <!-- MOČ -->
-<section class="pan">
+<section class="pan" data-help="moc">
   <div class="hero">
     <div><div class="sub">Trenutna moč</div><div class="big" id="pNow">--<small>W</small></div></div>
     <div style="text-align:right"><div class="sub">Δt impulza</div><b id="dtNow" style="font-size:20px">-- s</b><div class="sub" id="srcLbl">ustavljeno</div></div>
@@ -101,7 +131,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 </section>
 
 <!-- GRAFI -->
-<section class="pan" style="grid-column:1/-1">
+<section class="pan" data-help="grafi" style="grid-column:1/-1">
   <div class="row" style="justify-content:space-between;margin-bottom:6px">
     <h2 style="margin:0;flex:0 0 auto">Grafi</h2>
     <select id="gMode" style="max-width:200px;flex:0 0 auto">
@@ -116,7 +146,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 </section>
 
 <!-- VIR / KAMERA -->
-<section class="pan">
+<section class="pan" data-help="vir">
   <h2>Vir impulzov</h2>
   <div class="row">
     <select id="src">
@@ -135,18 +165,20 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
     <div class="sub" id="sigLbl">signal: –</div>
     <div class="f" style="margin-top:8px">
       <div><label>Velikost okna <span id="roiSzL"></span></label><input type="range" id="roiSz" min="12" max="140" value="50"></div>
-      <div><label>Prag <span id="thrL"></span></label><input type="range" id="thr" min="3" max="120" value="25"></div>
-      <div><label>Kanal</label><select id="chan"><option value="l">Svetlost</option><option value="r">Rdeča</option><option value="g">Zelena</option><option value="b">Modra</option><option value="ir">Rdeča − modra (IR/rdeč LED)</option></select></div>
+      <div><label>Velikost spremembe <span id="minStepL"></span></label><input type="range" id="minStep" min="3" max="80" value="12"></div>
+      <div><label>Barvni filter</label><select id="chan"><option value="auto">Samodejno (najboljši kontrast)</option><option value="l">Svetlost</option><option value="r">Rdeča</option><option value="g">Zelena</option><option value="b">Modra</option><option value="ir">Rdeča − modra (rdeč LED)</option></select></div>
+      <div><label>Vrsta števca</label><select id="mtype"><option value="el">Elektrika (LED utrip)</option><option value="mark">Plin / voda – oznaka (test)</option></select></div>
       <div><label>Kamera</label><select id="camSel"><option value="environment">Zadnja</option><option value="user">Sprednja</option></select></div>
+      <div style="display:flex;align-items:end"><button id="bFind" style="width:100%">Poišči LED samodejno</button></div>
     </div>
-    <label class="chk"><input type="checkbox" id="autoThr" checked> Samodejni prag (prilagaja se svetlobi)</label>
-    <label class="chk"><input type="checkbox" id="lockExp" checked> Poskusi zakleniti osvetlitev in ostrino</label>
+    <div class="sub">Prag in osvetlitev nastavlja program sam, ves čas. »Velikost spremembe« je najmanjši skok svetlosti, ki še šteje kot impulz.</div>
+    <div class="st" id="camSt" style="margin-top:8px"></div>
     <div class="warnbox" id="camWarn"></div>
   </div>
 </section>
 
 <!-- GOVOR -->
-<section class="pan">
+<section class="pan" data-help="govor">
   <h2>Govor</h2>
   <label class="chk"><input type="checkbox" id="spOn"> Govor vklopljen</label>
   <div class="f">
@@ -179,7 +211,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 </section>
 
 <!-- NASTAVITVE -->
-<section class="pan">
+<section class="pan" data-help="nastavitve">
   <h2>Nastavitve števca</h2>
   <div class="f">
     <div><label>Impulzov na kWh</label><input type="number" id="ppk" value="1000" min="1"></div>
@@ -195,11 +227,13 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
     <div><label>MT do ure</label><input type="number" id="mtTo" value="6" min="0" max="23"></div>
   </div>
   <label class="chk"><input type="checkbox" id="mtWe" checked> Vikend v celoti MT</label>
+  <h2 style="margin-top:14px">Barvna paleta</h2>
+  <div class="pal" id="pal"></div>
   <div class="sub">Cene so primer, vpiši svoje iz računa.</div>
 </section>
 
 <!-- STALNO DELOVANJE -->
-<section class="pan">
+<section class="pan" data-help="stalno">
   <h2>Stalno delovanje</h2>
   <label class="chk"><input type="checkbox" id="kaWake" checked> Zaslon vedno prižgan (Wake Lock + rezervni video)</label>
   <label class="chk"><input type="checkbox" id="kaAuto" checked> Samodejni zagon ob odprtju strani</label>
@@ -209,8 +243,22 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
   <div class="warnbox" id="bgWarn">Stran je bila v ozadju. Brskalnik v ozadju ustavi kamero, zato so bili impulzi v tem času lahko izpuščeni. Za stalno delovanje pusti stran odprto spredaj (uporabi »Temni«).</div>
 </section>
 
+<!-- SIMULATOR LED -->
+<section class="pan" data-help="led">
+  <h2>Simulator LED (drugi telefon)</h2>
+  <div class="sub">Na drugem telefonu odpri to aplikacijo in zaženi simulator. Zaslon utripa kot LED na števcu, prvi telefon ga snema s kamero.</div>
+  <div class="f" style="margin-top:8px">
+    <div style="grid-column:1/-1"><label>Hitrost utripanja <span id="ledPL"></span></label><input type="range" id="ledP" min="0" max="1000" value="500"></div>
+    <div><label>Način</label><select id="ledMode"><option value="const">Stalna moč</option><option value="var">Spremenljiva (porabniki)</option></select></div>
+    <div><label>Utrip</label><div id="ledWL" style="padding:10px 0;font-size:14px">10 % prižgano, 90 % ugasnjeno</div></div>
+    <div><label>Barva</label><select id="ledCol"><option value="red">Rdeča</option><option value="white">Bela</option><option value="green">Zelena</option><option value="blue">Modra</option><option value="yellow">Rumena</option></select></div>
+    <div><label>Velikost pike <span id="ledSzL"></span></label><input type="range" id="ledSz" min="5" max="90" value="30"></div>
+  </div>
+  <div class="row" style="margin-top:8px"><button class="pri" id="bLed">Odpri simulator LED</button></div>
+</section>
+
 <!-- PODATKI -->
-<section class="pan">
+<section class="pan" data-help="podatki">
   <h2>Podatki</h2>
   <div class="row">
     <button id="bCsvM">CSV minute</button><button id="bCsvD">CSV dnevi</button><button id="bJson">Varnostna kopija</button>
@@ -226,14 +274,29 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 </div>
 </div>
 
-<div id="dim"><div class="sub">tapni za izhod</div><div class="big" id="dimP">--</div><div id="dimS" style="margin-top:10px"></div></div>
+<div id="ledOv">
+  <div class="vtag" id="verLed">SEV10B</div>
+  <div id="ledDot"></div>
+  <div id="ledInfo"><span id="ledNow">–</span><span id="ledCnt">0 imp · 0,000 kWh</span></div>
+  <div id="ledCtl">
+    <label>Hitrost <span id="ledPL2"></span></label>
+    <input type="range" id="ledP2" min="0" max="1000" value="500">
+    <div class="row" style="margin:6px 0">
+      <select id="ledCol2" style="flex:1 1 40%;background:#0c1020;border-color:#1a2140;color:#7a84a8"><option value="red">Rdeča</option><option value="white">Bela</option><option value="green">Zelena</option><option value="blue">Modra</option><option value="yellow">Rumena</option></select>
+      <div style="flex:1 1 55%"><label>Velikost <span id="ledSzL2"></span></label><input type="range" id="ledSz2" min="5" max="90" value="30"></div>
+    </div>
+    <div class="row"><button id="ledMode2">Stalna moč</button><button id="ledReset">Ponastavi</button><button id="ledExit">Izhod</button></div>
+  </div>
+</div>
+<div id="helpOv"><div id="helpBox"><div id="helpHead"><h2 id="helpT">Pomoč</h2><button id="helpX">Zapri</button></div><div id="helpB"></div></div></div>
+<div id="dim"><div class="vtag" id="verDim">SEV10B</div><div class="sub">tapni za izhod</div><div class="big" id="dimP">--</div><div id="dimS" style="margin-top:10px"></div></div>
 <video id="nosleep" playsinline muted loop style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;left:0"></video>
 <canvas id="smp" width="32" height="32" style="display:none"></canvas>
 
 <script>
 {
 "use strict";
-const VER = "SEV1B";
+const VER = "SEV10B";
 const $ = id => document.getElementById(id);
 const KEY = "stevec_elektrike";
 
@@ -268,18 +331,62 @@ let S = {
   pulses: 0, roi: {x: .45, y: .45},
   run: false, src: "cam"
 };
-function load() {
-  try { const j = JSON.parse(localStorage.getItem(KEY) || "null"); if (j) { Object.assign(S, j); } } catch (e) { logm("Branje shrambe ni uspelo: " + e.message); }
+/* Shramba v Chromu: vsaka sprememba gre v localStorage IN IndexedDB (dvojna kopija).
+   Ob nalaganju se vzame novejša. Zahteva se trajna shramba, da je Chrome ne pobriše. */
+const IDB_NAME = "stevec_elektrike", IDB_ST = "kv";
+let idb = null, persisted = null, usage = null, lsOk = null, idbOk = null;
+function idbOpen() {
+  return new Promise(res => {
+    try {
+      const r = indexedDB.open(IDB_NAME, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(IDB_ST);
+      r.onsuccess = () => { idb = r.result; res(idb); };
+      r.onerror = r.onblocked = () => res(null);
+      setTimeout(() => res(idb), 3000);
+    } catch (e) { res(null); }
+  });
+}
+function idbGet() {
+  return new Promise(res => {
+    if (!idb) return res(null);
+    try { const q = idb.transaction(IDB_ST, "readonly").objectStore(IDB_ST).get("S"); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); } catch (e) { res(null); }
+    setTimeout(() => res(null), 3000);
+  });
+}
+function idbPut(txt) {
+  if (!idb) { idbOk = false; return; }
+  try { const tx = idb.transaction(IDB_ST, "readwrite"); tx.objectStore(IDB_ST).put(txt, "S"); tx.oncomplete = () => idbOk = true; tx.onerror = tx.onabort = () => { idbOk = false; logm("IndexedDB: zapis ni uspel."); }; }
+  catch (e) { idbOk = false; }
+}
+async function load() {
+  await idbOpen();
+  let a = null, b = null;
+  try { a = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { logm("Branje localStorage ni uspelo: " + e.message); }
+  try { b = JSON.parse((await idbGet()) || "null"); } catch (e) { logm("Branje IndexedDB ni uspelo."); }
+  const j = (a && b) ? ((a.savedAt || 0) >= (b.savedAt || 0) ? a : b) : (a || b);
+  if (j) { Object.assign(S, j); logm("Naloženo iz " + (j === a ? "localStorage" : "IndexedDB") + " (shranjeno " + (j.savedAt ? dayKey(j.savedAt) + " " + hm(j.savedAt) : "–") + ")."); }
+  // trajna shramba: ne čakaj nanjo (v nekaterih brskalnikih odgovor zamuja)
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(p => p ? (persisted = true) : navigator.storage.persist().then(r => { persisted = r; logm(r ? "Trajna shramba odobrena." : "Trajna shramba ni odobrena."); })).catch(() => {}); } catch (e) {}
+  storeEst();
   // dopolni nova pravila
   const ids = new Set(S.rules.map(r => r.id));
   DEF_RULES.forEach(r => { if (!ids.has(r.id)) S.rules.push(JSON.parse(JSON.stringify(r))); });
 }
-let lastSave = 0;
+let lastSave = 0, saveT = 0, loaded = false;
 function save() {
+  clearTimeout(saveT); saveT = 0;
+  if (!loaded) return;
   prune();
-  try { localStorage.setItem(KEY, JSON.stringify(S)); lastSave = Date.now(); }
-  catch (e) { logm("Shranjevanje ni uspelo: " + e.message); }
+  S.savedAt = Date.now();
+  S.live = {buf: secBuf.slice(-3600), lastPulse, lastDt, curP, dts, dayMax, dayMaxKey};
+  const txt = JSON.stringify(S);
+  try { localStorage.setItem(KEY, txt); lsOk = true; } catch (e) { lsOk = false; logm("localStorage: " + e.message); }
+  idbPut(txt);
+  lastSave = Date.now();
 }
+// takojšnje shranjevanje ob spremembi (združi hitre spremembe v 300 ms)
+function saveSoon() { if (!saveT) saveT = setTimeout(save, 300); }
+async function storeEst() { try { if (navigator.storage && navigator.storage.estimate) { const e = await navigator.storage.estimate(); usage = e.usage; } } catch (e) {} }
 function prune() {
   const mLim = minIdx(Date.now()) - 8 * 1440, hLim = hourIdx(Date.now()) - 800 * 24;
   for (const k in S.minutes) if (+k < mLim) delete S.minutes[k];
@@ -287,9 +394,9 @@ function prune() {
 }
 
 /* ===================== NASTAVITVE ↔ UI ===================== */
-const SET_IDS = ["ppk", "gap", "avgN", "meter0", "pVT", "pMT", "mtFrom", "mtTo", "mtWe", "thr", "autoThr", "lockExp", "chan", "camSel", "roiSz",
+const SET_IDS = ["ppk", "gap", "avgN", "meter0", "pVT", "pMT", "mtFrom", "mtTo", "mtWe", "minStep", "mtype", "chan", "camSel", "roiSz",
   "spOn", "spRate", "spVol", "spStyle", "evHi", "evJump", "evNone", "evDay", "evHiOn", "evJumpOn", "evNoneOn", "evDayOn", "evNewMax", "qFrom", "qTo", "qOn",
-  "kaWake", "kaAuto", "kaRestart", "kaDimAuto", "gMode"];
+  "kaWake", "kaAuto", "kaRestart", "kaDimAuto", "gMode", "ledP", "ledMode", "ledCol", "ledSz"];
 function setToUI() {
   SET_IDS.forEach(id => { const el = $(id); if (!el || !(id in S.set)) return; if (el.type === "checkbox") el.checked = !!S.set[id]; else el.value = S.set[id]; });
   $("src").value = S.src;
@@ -300,7 +407,8 @@ function uiToSet() {
 }
 const g = id => S.set[id];
 function labels() {
-  $("thrL").textContent = g("thr"); $("roiSzL").textContent = g("roiSz") + " px";
+  if ($("ledPL")) ledLabels();
+  $("minStepL").textContent = g("minStep"); $("roiSzL").textContent = g("roiSz") + " px";
   $("spRateL").textContent = fmt(g("spRate"), 1) + "×"; $("spVolL").textContent = Math.round(g("spVol") * 100) + " %";
 }
 
@@ -479,8 +587,19 @@ $("rules").addEventListener("change", e => {
 });
 
 /* ===================== KAMERA ===================== */
+/* Samodejno — osvetlitev kamere, prag, barvni filter in iskanje LED.
+   Uporabnik nastavi samo velikost okna in velikost spremembe (najmanjši skok). */
 const vid = $("vid"), roi = $("roi"), smp = $("smp"), sctx = smp.getContext("2d", {willReadFrequently: true});
-let stream = null, track = null, lastFrame = 0, baseline = null, peak = null, isOn = false, sigBuf = [], camRestarts = 0, frameCnt = 0, fps = 0, fpsT = 0;
+const fcv = document.createElement("canvas"); fcv.width = 80; fcv.height = 60; const fctx = fcv.getContext("2d", {willReadFrequently: true});
+let stream = null, track = null, lastFrame = 0, sigBuf = [], camRestarts = 0, frameCnt = 0, fps = 0, fpsT = 0;
+const CH = ["l", "r", "g", "b", "ir"], CHN = {l: "svetlost", r: "rdeča", g: "zelena", b: "modra", ir: "rdeča − modra"};
+// detektor
+let D = null;
+function detReset(v) { D = {base: v, noise: 1, amp: 0, on: false, onT: 0, onMax: 0, thr: +g("minStep"), settle: Date.now() + 500}; }
+let curCh = "l", chRing = {}, chScore = {}, lastChEval = 0, lastBg = 0, lastTopL = 0, topMax = 0;
+CH.forEach(c => { chRing[c] = []; chScore[c] = 0; });
+// osvetlitev
+let expCtl = {kind: "none"}, expChanges = 0, lastExpAdj = 0, expBusy = false;
 async function camStart() {
   camWarn("");
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { camWarn("Brskalnik ne omogoča kamere. Stran mora teči na https:// ali http://localhost (ne file:// ali content://)."); return false; }
@@ -493,69 +612,205 @@ async function camStart() {
   track = stream.getVideoTracks()[0];
   track.onended = () => { logm("Kamera prekinjena."); if (S.run && g("kaRestart")) setTimeout(camRestart, 1500); };
   vid.srcObject = stream; try { await vid.play(); } catch (e) {}
-  if (g("lockExp")) setTimeout(lockCam, 1500);
-  baseline = null; peak = null; lastFrame = Date.now();
+  D = null; lastFrame = Date.now(); expCtl = {kind: "none"};
+  setTimeout(expInit, 1200);
   loopFrames();
   logm("Kamera zagnana.");
+  setTimeout(() => { if (!S.roiSet && stream && !find) findStart(); }, 1500);
   return true;
 }
-async function lockCam() {
-  if (!track || !track.getCapabilities) return;
+/* --- osvetlitev: dolg čas osvetlitve (ujame kratke utripe), svetlost pa z ISO / kompenzacijo --- */
+async function expInit() {
+  if (!track || !track.getCapabilities) { expCtl = {kind: "none"}; return; }
+  let c = {}, st = {};
+  try { c = track.getCapabilities() || {}; st = track.getSettings() || {}; } catch (e) {}
+  const man = c.exposureMode && c.exposureMode.includes("manual");
   try {
-    const c = track.getCapabilities(), adv = {};
-    if (c.exposureMode && c.exposureMode.includes("manual")) adv.exposureMode = "manual";
-    if (c.focusMode && c.focusMode.includes("manual")) adv.focusMode = "manual";
-    if (c.whiteBalanceMode && c.whiteBalanceMode.includes("manual")) adv.whiteBalanceMode = "manual";
-    if (Object.keys(adv).length) { await track.applyConstraints({advanced: [adv]}); logm("Zaklenjeno: " + Object.keys(adv).join(", ")); }
-  } catch (e) { logm("Zaklepanje osvetlitve ni podprto."); }
+    if (man && c.iso && c.exposureTime) {
+      const et = Math.max(c.exposureTime.min, Math.min(c.exposureTime.max, 330)); // 330 × 100 µs = 33 ms
+      const iso = st.iso || c.iso.min;
+      await track.applyConstraints({advanced: [{exposureMode: "manual", exposureTime: et, iso}]});
+      expCtl = {kind: "iso", min: c.iso.min, max: c.iso.max, val: iso, et};
+    } else if (man && c.exposureTime) {
+      const v = st.exposureTime || Math.min(c.exposureTime.max, 330);
+      await track.applyConstraints({advanced: [{exposureMode: "manual", exposureTime: v}]});
+      expCtl = {kind: "time", min: c.exposureTime.min, max: Math.min(c.exposureTime.max, 330), val: v};
+    } else if (c.exposureCompensation) {
+      expCtl = {kind: "comp", min: c.exposureCompensation.min, max: c.exposureCompensation.max, step: c.exposureCompensation.step || 0.33, val: st.exposureCompensation || 0};
+    } else expCtl = {kind: "none"};
+  } catch (e) { expCtl = {kind: "none"}; logm("Osvetlitve ni mogoče nastavljati: " + e.message); }
+  logm("Osvetlitev: " + expTxt());
+  // po 3 s zakleni ostrino in beli balans, da kamera ne "lovi" ob utripu
+  setTimeout(async () => {
+    try {
+      const adv = {};
+      if (c.focusMode && c.focusMode.includes("manual")) adv.focusMode = "manual";
+      if (c.whiteBalanceMode && c.whiteBalanceMode.includes("manual")) adv.whiteBalanceMode = "manual";
+      if (Object.keys(adv).length) { await track.applyConstraints({advanced: [adv]}); logm("Zaklenjeno: " + Object.keys(adv).join(", ")); }
+    } catch (e) {}
+  }, 3000);
 }
-function camStop() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; track = null; vid.srcObject = null; }
+function expTxt() {
+  const k = expCtl.kind;
+  return k === "iso" ? `ISO ${Math.round(expCtl.val)}, čas ${fmt(expCtl.et / 10, 1)} ms` : k === "time" ? `čas ${fmt(expCtl.val / 10, 1)} ms` : k === "comp" ? `kompenzacija ${fmt(expCtl.val, 1)} EV` : "kamera samodejno (ročna nastavitev ni podprta)";
+}
+async function expAdjust(now, bg, topL) {
+  if (expCtl.kind === "none" || expBusy || now - lastExpAdj < 800 || (D && D.on)) return;
+  // cilj: ozadje 25–110, LED ne v nasičenju, dovolj velik skok
+  let dir = 0;
+  if (bg > 110 || (topMax >= 250 && bg > 25)) dir = -1;
+  else if (bg < 25 && (!D || D.amp < 3 * +g("minStep")) && topMax < 200) dir = 1;
+  topMax = 0;
+  if (!dir) return;
+  let nv = expCtl.val, k = expCtl.kind;
+  if (k === "iso" || k === "time") nv = Math.round(Math.min(expCtl.max, Math.max(expCtl.min, nv * (dir > 0 ? 1.35 : 0.75))));
+  if (k === "comp") nv = Math.min(expCtl.max, Math.max(expCtl.min, nv + dir * expCtl.step * 2));
+  if (nv === expCtl.val) return;
+  expBusy = true; lastExpAdj = now;
+  try {
+    const adv = k === "iso" ? {iso: nv} : k === "time" ? {exposureTime: nv} : {exposureCompensation: nv};
+    await track.applyConstraints({advanced: [adv]});
+    expCtl.val = nv; expChanges++;
+    if (D) D.settle = Date.now() + 700; // med prilagajanjem ne štej
+  } catch (e) { expCtl.kind = "none"; logm("Prilagajanje osvetlitve ni uspelo."); }
+  expBusy = false;
+}
+function camStop() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; track = null; vid.srcObject = null; if (find) findStop(); }
 async function camRestart() { camRestarts++; logm("Ponovni zagon kamere #" + camRestarts); camStop(); if (S.run && S.src === "cam") await camStart(); }
 function loopFrames() {
   if (!stream) return;
   if (vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(() => { sample(); loopFrames(); });
   else requestAnimationFrame(() => { sample(); loopFrames(); });
 }
+// povprečje najsvetlejših pikslov (24 od 1024) iz histograma — LED je majhna točka v oknu
+function topMean(h, n) { let c = 0, s = 0; for (let i = 255; i >= 0 && c < n; i--) { const k = Math.min(h[i], n - c); c += k; s += k * i; } return s / Math.max(1, c); }
+const HIST = {}; CH.forEach(c => HIST[c] = new Uint32Array(256));
 function sample() {
   if (!stream || vid.readyState < 2 || !vid.videoWidth) return;
   const now = Date.now(); lastFrame = now; frameCnt++;
   if (now - fpsT > 1000) { fps = frameCnt * 1000 / (now - fpsT); frameCnt = 0; fpsT = now; }
-  // pretvori položaj okna (zaslon, object-fit:cover) v koordinate videa
-  const vw = vid.videoWidth, vh = vid.videoHeight, bw = vid.clientWidth, bh = vid.clientHeight;
+  // položaj okna (zaslon, object-fit:cover) → koordinate videa
+  const vw = vid.videoWidth, vh = vid.videoHeight, bw = vid.clientWidth || vw, bh = vid.clientHeight || vh;
   const sc = Math.max(bw / vw, bh / vh), ox = (vw * sc - bw) / 2, oy = (vh * sc - bh) / 2;
-  const sz = +g("roiSz");
-  const cx = S.roi.x * bw, cy = S.roi.y * bh;
+  if (find) findStep(now, ox / sc, oy / sc, bw / sc, bh / sc);
+  const sz = +g("roiSz"), cx = S.roi.x * bw, cy = S.roi.y * bh;
   const sx = (cx - sz / 2 + ox) / sc, sy = (cy - sz / 2 + oy) / sc, ss = sz / sc;
+  sctx.clearRect(0, 0, 32, 32);
   sctx.drawImage(vid, sx, sy, ss, ss, 0, 0, 32, 32);
-  const d = sctx.getImageData(0, 0, 32, 32).data, ch = g("chan");
-  // povprečje najsvetlejše četrtine pikslov (LED je majhna točka)
-  const vals = new Array(1024);
-  for (let i = 0, j = 0; i < d.length; i += 4, j++) {
-    const r = d[i], gg = d[i + 1], b = d[i + 2];
-    vals[j] = ch === "r" ? r : ch === "g" ? gg : ch === "b" ? b : ch === "ir" ? Math.max(0, r - b) : 0.299 * r + 0.587 * gg + 0.114 * b;
+  const d = sctx.getImageData(0, 0, 32, 32).data;
+  CH.forEach(c => HIST[c].fill(0));
+  let sumL = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], gg = d[i + 1], b = d[i + 2], l = (0.299 * r + 0.587 * gg + 0.114 * b) | 0;
+    HIST.l[l]++; HIST.r[r]++; HIST.g[gg]++; HIST.b[b]++; HIST.ir[r > b ? r - b : 0]++; sumL += l;
   }
-  vals.sort((a, b) => b - a);
-  let s = 0; for (let i = 0; i < 256; i++) s += vals[i]; const v = s / 256;
-  if (baseline == null) { baseline = v; peak = v + 40; }
-  let thr = +g("thr");
-  if (g("autoThr")) thr = Math.max(thr * 0.4, Math.min(thr * 2.5, (peak - baseline) * 0.45));
-  const diff = v - baseline;
-  if (!isOn && diff > thr) { isOn = true; peak = peak * 0.7 + v * 0.3; onPulse(now); }
-  else if (isOn && diff < thr * 0.5) isOn = false;
-  if (!isOn) baseline = baseline * 0.985 + v * 0.015; else peak = Math.max(peak * 0.999, v);
-  roi.classList.toggle("hit", isOn);
-  sigBuf.push([v, baseline, baseline + thr]); if (sigBuf.length > 240) sigBuf.shift();
-  if (frameCnt % 3 === 0) drawSig(v, thr);
+  const V = {}; CH.forEach(c => { V[c] = topMean(HIST[c], 24); const rg = chRing[c]; rg.push(V[c]); if (rg.length > 150) rg.shift(); });
+  const bg = sumL / 1024; topMax = Math.max(topMax, topMean(HIST.l, 32));
+  // barvni filter: ročno ali samodejno (najboljše razmerje skok / šum)
+  const sel = g("chan") || "auto";
+  if (sel !== "auto") { if (curCh !== sel) { curCh = sel; D = null; } }
+  else if (now - lastChEval > 2000 && !(D && D.on)) { lastChEval = now; chooseChannel(); }
+  const v = V[curCh];
+  if (!D) detReset(v);
+  detect(v, now);
+  if (!(D && D.on)) expAdjust(now, bg);
+  roi.classList.toggle("hit", D.on);
+  sigBuf.push([v, D.base, D.base + D.thr]); if (sigBuf.length > 240) sigBuf.shift();
+  if (frameCnt % 3 === 0) drawSig(v, D.thr);
+}
+function chooseChannel() {
+  let best = null;
+  CH.forEach(c => {
+    const rg = chRing[c]; if (rg.length < 60) return;
+    const so = rg.slice().sort((a, b) => a - b), med = so[so.length >> 1], mx = so[so.length - 1];
+    const dif = []; for (let i = 1; i < rg.length; i++) dif.push(Math.abs(rg[i] - rg[i - 1])); dif.sort((a, b) => a - b);
+    const noise = dif[dif.length >> 1];
+    const sc = (mx - med) / (noise * 3 + 1.5);
+    chScore[c] = Math.max(chScore[c] * 0.97, sc); // spomin: utrip je lahko le vsakih nekaj deset sekund
+    if (!best || chScore[c] > chScore[best]) best = c;
+  });
+  if (best && best !== curCh && chScore[best] > 3 && chScore[best] > 1.4 * (chScore[curCh] || 0)) {
+    logm(`Filter: ${CHN[curCh]} → ${CHN[best]} (kontrast ${fmt(chScore[best], 1)})`);
+    curCh = best; D = null;
+  }
+}
+function detect(v, now) {
+  const minStep = +g("minStep"), el = g("mtype") !== "mark";
+  if (now < D.settle) { D.base += (v - D.base) * 0.3; return; }
+  D.thr = Math.max(minStep, 5 * D.noise, 0.5 * D.amp);
+  const diff = v - D.base;
+  if (!D.on) {
+    if (diff > D.thr) {
+      D.on = true; D.onT = now; D.onMax = diff;
+      if (!el) onPulse(now); // oznaka plin/voda: šteje ob začetku
+    } else {
+      D.base += (v - D.base) * 0.03;
+      D.noise += (Math.abs(diff) - D.noise) * 0.02;
+      D.amp *= 0.9993;
+    }
+  } else {
+    D.onMax = Math.max(D.onMax, diff);
+    if (diff < D.thr * 0.4) { // padajoči rob
+      D.on = false;
+      if (el) onPulse(D.onT);
+      D.amp = D.amp ? D.amp * 0.7 + D.onMax * 0.3 : D.onMax;
+    } else if ((el && now - D.onT > 1500) || now - D.onT > 600000) {
+      // predolg "utrip" = sprememba svetlobe v prostoru → novo ozadje, ne šteje
+      D.on = false; D.base = v; D.settle = now + 300;
+      logm("Sprememba svetlobe — ozadje prilagojeno.");
+    }
+  }
+}
+/* --- samodejno iskanje LED: piksel, ki večkrat utripne neodvisno od ostale slike --- */
+let find = null;
+function findStart() {
+  if (!stream) { logm("Najprej zaženi kamero."); return; }
+  find = {t0: Date.now(), acc: new Float32Array(4800), prev: null, last: 0};
+  $("bFind").textContent = "Iščem LED …"; logm("Iščem LED. Za hitrejše iskanje vklopi večjega porabnika.");
+}
+function findStop(msg) { find = null; $("bFind").textContent = "Poišči LED samodejno"; if (msg) logm(msg); }
+function findStep(now, sx, sy, sw, sh) {
+  fctx.drawImage(vid, sx, sy, sw, sh, 0, 0, 80, 60);
+  const d = fctx.getImageData(0, 0, 80, 60).data, cur = new Float32Array(4800);
+  let mean = 0;
+  for (let i = 0, j = 0; j < 4800; i += 4, j++) { cur[j] = Math.max(d[i], d[i + 1], d[i + 2]); mean += cur[j]; }
+  mean /= 4800;
+  if (find.prev) {
+    let pm = 0; for (let j = 0; j < 4800; j++) pm += find.prev[j]; pm /= 4800;
+    const gd = mean - pm, lim = Math.max(12, +g("minStep"));
+    for (let j = 0; j < 4800; j++) if (cur[j] - find.prev[j] - gd > lim) find.acc[j]++;
+  }
+  find.prev = cur;
+  if (now - find.last < 1000) return;
+  find.last = now;
+  let bi = -1, bv = 0, tot = 0;
+  for (let y = 1; y < 59; y++) for (let x = 1; x < 79; x++) {
+    let s = 0; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) s += find.acc[(y + a) * 80 + x + b];
+    tot += s; if (s > bv) { bv = s; bi = y * 80 + x; }
+  }
+  const avg = tot / (78 * 58);
+  if (bv >= 3 && bv > 6 * avg + 2) {
+    S.roi.x = ((bi % 80) + 0.5) / 80; S.roi.y = (Math.floor(bi / 80) + 0.5) / 60; S.roiSet = true;
+    placeRoi(); D = null; save(); findStop("LED najdena."); say("LED najdena.");
+  } else if (now - find.t0 > 180000) findStop("LED ni najdena. Tapni nanjo v sliki ali vklopi večjega porabnika in poskusi znova.");
+  else $("bFind").textContent = `Iščem LED … ${Math.round((now - find.t0) / 1000)} s`;
 }
 function drawSig(v, thr) {
   const c = $("sig"), W = c.clientWidth, H = c.clientHeight;
+  if (!W) return;
   if (c.width !== W * 2) { c.width = W * 2; c.height = H * 2; }
   const x = c.getContext("2d"); x.setTransform(2, 0, 0, 2, 0, 0); x.clearRect(0, 0, W, H);
   let lo = 255, hi = 0; sigBuf.forEach(a => { lo = Math.min(lo, a[0], a[1]); hi = Math.max(hi, a[0], a[2]); });
   hi += 5; lo = Math.max(0, lo - 5);
   const Y = y => H - 4 - (y - lo) / (hi - lo || 1) * (H - 8), X = i => i / 239 * W;
-  [[2, "#ffb02088"], [1, "#8a94b488"], [0, "#2fd18a"]].forEach(([k, col]) => { x.strokeStyle = col; x.lineWidth = k ? 1 : 1.6; x.beginPath(); sigBuf.forEach((a, i) => i ? x.lineTo(X(i), Y(a[k])) : x.moveTo(X(i), Y(a[k]))); x.stroke(); });
-  $("sigLbl").textContent = `signal ${fmt(v, 0)} · ozadje ${fmt(baseline, 0)} · prag +${fmt(thr, 0)} · ${fmt(fps, 0)} sl/s`;
+  [[2, cssv("--warn")], [1, cssv("--dim")], [0, cssv("--ok")]].forEach(([k, col]) => { x.strokeStyle = col; x.globalAlpha = k ? 0.6 : 1; x.lineWidth = k ? 1 : 1.6; x.beginPath(); sigBuf.forEach((a, i) => i ? x.lineTo(X(i), Y(a[k])) : x.moveTo(X(i), Y(a[k]))); x.stroke(); });
+  $("sigLbl").textContent = `signal ${fmt(v, 0)} · ozadje ${fmt(D.base, 0)} · prag +${fmt(thr, 0)} · ${fmt(fps, 0)} sl/s`;
+  $("camSt").innerHTML = [
+    ["Barvni filter", CHN[curCh] + ((g("chan") || "auto") === "auto" ? " (samodejno)" : "")],
+    ["Prag", `${fmt(D.thr, 0)} (samodejno, najmanj ${g("minStep")})`],
+    ["Šum / skok utripa", `${fmt(D.noise, 1)} / ${D.amp ? fmt(D.amp, 0) : "–"}`],
+    ["Osvetlitev", expTxt() + (expChanges ? ` · ${expChanges}× prilagojena` : "")]
+  ].map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join("");
 }
 function camWarn(t) { $("camWarn").style.display = t ? "block" : "none"; $("camWarn").textContent = t; }
 function placeRoi() { const sz = +g("roiSz"); roi.style.width = roi.style.height = sz + "px"; roi.style.left = `calc(${S.roi.x * 100}% - ${sz / 2}px)`; roi.style.top = `calc(${S.roi.y * 100}% - ${sz / 2}px)`; }
@@ -565,10 +820,11 @@ function flashRoi() { if (S.src !== "cam") { roi.classList.add("hit"); clearTime
   let drag = false;
   const mv = e => { if (!drag) return; const r = $("vw").getBoundingClientRect(); S.roi.x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); S.roi.y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)); placeRoi(); };
   roi.addEventListener("pointerdown", e => { drag = true; roi.setPointerCapture(e.pointerId); });
-  roi.addEventListener("pointermove", mv);
-  roi.addEventListener("pointerup", () => { drag = false; baseline = null; save(); });
-  $("vw").addEventListener("click", e => { if (e.target === roi) return; const r = $("vw").getBoundingClientRect(); S.roi.x = (e.clientX - r.left) / r.width; S.roi.y = (e.clientY - r.top) / r.height; placeRoi(); baseline = null; save(); });
+  roi.addEventListener("pointermove", e => { mv(e); if (drag) saveSoon(); });
+  roi.addEventListener("pointerup", () => { drag = false; S.roiSet = true; D = null; findStop(); save(); });
+  $("vw").addEventListener("click", e => { if (e.target === roi) return; const r = $("vw").getBoundingClientRect(); S.roi.x = (e.clientX - r.left) / r.width; S.roi.y = (e.clientY - r.top) / r.height; S.roiSet = true; placeRoi(); D = null; findStop(); save(); });
 })();
+$("bFind").onclick = () => find ? findStop("Iskanje ustavljeno.") : findStart();
 
 /* ===================== SIMULATOR ===================== */
 let simT = 0, simEv = [];
@@ -591,10 +847,10 @@ function simStep() {
 
 /* ===================== ZAGON / USTAVITEV ===================== */
 let runStart = 0;
-async function start() {
+async function start(resume) {
   stop(true);
   S.src = $("src").value; S.run = true; runStart = Date.now();
-  lastPulse = 0; curP = null; dts = [];
+  if (!resume) { lastPulse = 0; curP = null; dts = []; }
   if (S.src === "cam") { const ok = await camStart(); if (!ok) { S.run = false; } }
   if (S.src === "sim") simStep();
   if (S.run && g("kaWake")) wakeOn();
@@ -603,7 +859,8 @@ async function start() {
 }
 function stop(silent) {
   clearTimeout(simT); camStop(); S.run = false; curP = null;
-  wakeOff(); ui(); if (!silent) { save(); logm("Ustavljeno."); }
+  if (!LS) wakeOff(); // simulator LED na istem telefonu naj zaslon še naprej drži prižgan
+  ui(); if (!silent) { save(); logm("Ustavljeno."); }
 }
 function ui() {
   $("bStart").textContent = S.run ? "■ Ustavi" : "▶ Zaženi";
@@ -615,24 +872,36 @@ function ui() {
 
 /* ===================== STALNO DELOVANJE ===================== */
 let wake = null, wakeReq = 0, nosleepOn = false, hiddenSince = 0, userAct = Date.now();
-async function wakeOn() {
-  if (!g("kaWake")) return;
-  try { if ("wakeLock" in navigator && !wake) { wake = await navigator.wakeLock.request("screen"); wakeReq++; wake.addEventListener("release", () => { wake = null; }); } }
-  catch (e) { logm("Wake Lock: " + e.message); }
-  if (!wake) noSleep(true);
+async function wakeOn(force) {
+  if (!force && !g("kaWake")) return;
+  if (wake) return;
+  noSleep(true); // takoj rezervni način, dokler Wake Lock ni potrjen
+  try {
+    if ("wakeLock" in navigator && !document.hidden) {
+      const w = await Promise.race([navigator.wakeLock.request("screen"), new Promise((_, r) => setTimeout(() => r(new Error("ni odgovora")), 3000))]);
+      wake = w; wakeReq++; w.addEventListener("release", () => { if (wake === w) wake = null; });
+      noSleep(false);
+    }
+  } catch (e) { logm("Wake Lock: " + e.message + " — rezervni način."); }
 }
 function wakeOff() { try { wake && wake.release(); } catch (e) {} wake = null; noSleep(false); }
-function noSleep(on) { // rezervni način: neskončen tih video iz platna
+// rezervni način (brez Wake Lock, npr. datoteka odprta iz Prenosov): neskončen tih video v zanki
+const NS_MP4 = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAbMbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAB9AAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAwV0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAB9AAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAfQAAAQAAABAAAAAAJ9bWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAAoAAAAUABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAACKG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAehzdGJsAAAAvHN0c2QAAAAAAAAAAQAAAKxhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAAMmF2Y0MBZAAK/+EAF2dkAAqs2V7ARAAAAwAEAAADACg8SJZYAQAEaO+Py/34+AAAAAAQcGFzcAAAAAEAAAABAAAAFGJ0cnQAAAAAAAAM0AAADNAAAAAYc3R0cwAAAAAAAAABAAAACgAACAAAAAAUc3RzcwAAAAAAAAABAAAAAQAAAGBjdHRzAAAAAAAAAAoAAAABAAAQAAAAAAEAACgAAAAAAQAAEAAAAAABAAAAAAAAAAEAAAgAAAAAAQAAKAAAAAABAAAQAAAAAAEAAAAAAAAAAQAACAAAAAABAAAQAAAAAChzdHNjAAAAAAAAAAIAAAABAAAAAgAAAAEAAAACAAAAAQAAAAEAAAA8c3RzegAAAAAAAAAAAAAACgAAAsQAAAAMAAAADAAAAAwAAAAMAAAADQAAAA4AAAAMAAAADAAAAA0AAAA0c3RjbwAAAAAAAAAJAAAG/AAACeEAAAn1AAAKCQAAChkAAAouAAAKQAAAClQAAApkAAAC8XRyYWsAAABcdGtoZAAAAAMAAAAAAAAAAAAAAAIAAAAAAAAH0AAAAAAAAAAAAAAAAQEAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAACRlZHRzAAAAHGVsc3QAAAAAAAAAAQAAB9AAAAQAAAEAAAAAAmltZGlhAAAAIG1kaGQAAAAAAAAAAAAAAAAAAB9AAABCgFXEAAAAAAAtaGRscgAAAAAAAAAAc291bgAAAAAAAAAAAAAAAFNvdW5kSGFuZGxlcgAAAAIUbWluZgAAABBzbWhkAAAAAAAAAAAAAAAkZGluZgAAABxkcmVmAAAAAAAAAAEAAAAMdXJsIAAAAAEAAAHYc3RibAAAAH5zdHNkAAAAAAAAAAEAAABubXA0YQAAAAAAAAABAAAAAAAAAAAAAQAQAAAAAB9AAAAAAAA2ZXNkcwAAAAADgICAJQACAASAgIAXQBUAAAAAAB9AAAABPwWAgIAFFYhW5QAGgICAAQIAAAAUYnRydAAAAAAAAB9AAAABPwAAACBzdHRzAAAAAAAAAAIAAAAQAAAEAAAAAAEAAAKAAAAAcHN0c2MAAAAAAAAACAAAAAEAAAABAAAAAQAAAAIAAAACAAAAAQAAAAQAAAABAAAAAQAAAAUAAAACAAAAAQAAAAYAAAABAAAAAQAAAAcAAAACAAAAAQAAAAgAAAABAAAAAQAAAAkAAAAFAAAAAQAAAFhzdHN6AAAAAAAAAAAAAAARAAAAFQAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAA0c3RjbwAAAAAAAAAJAAAJzAAACe0AAAoBAAAKFQAACiYAAAo8AAAKTAAACmAAAApxAAAAGnNncGQBAAAAcm9sbAAAAAIAAAAB//8AAAAcc2JncAAAAAByb2xsAAAAAQAAABEAAAABAAAAYnVkdGEAAABabWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAbWRpcmFwcGwAAAAAAAAAAAAAAAAtaWxzdAAAACWpdG9vAAAAHWRhdGEAAAABAAAAAExhdmY2MC4xNi4xMDAAAAAIZnJlZQAAA5FtZGF0AAACqgYF//+m3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE2NCByMzEwOCAzMWUxOWY5IC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAyMyAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTEgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDMgbWU9aGV4IHN1Ym1lPTIgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MCBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTAgOHg4ZGN0PTEgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9MCB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTEga2V5aW50PTI1MCBrZXlpbnRfbWluPTUgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD0xMCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAASZYiEABP/5v8F4P84lhbQL/+BAAAACEGaJBiCX/7g3gIATGF2YzYwLjMxLjEwMgACMEAOAAAACEGeQkIIf6uBARggBwEYIAcAAAAIAZ5hRD//s4ABGCAHARggBwAAAAgBnmNEP/+zgQEYIAcAAAAJQZpoNExBD/7hARggBwEYIAcAAAAKQZ6GRREsEP+rgQEYIAcAAAAIAZ6lRD//s4EBGCAHARggBwAAAAgBnqdEP/+zgAEYIAcAAAAJQZqpNExD//7gARggBwEYIAcBGCAHARggBwEYIAc=", NS_WEBM = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwEAAAAAAAg5EU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHYTbuMU6uEElTDZ1OsggGETbuMU6uEHFO7a1Osgggj7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsirXsYMPQkBNgI1MYXZmNjAuMTYuMTAwV0GNTGF2ZjYwLjE2LjEwMESJiECfYAAAAAAAFlSua0CmrgEAAAAAAAA414EBc8WI9sgPkwWcQJucgQAitZyDdW5kiIEAhoVWX1ZQOIOBASPjg4QL68IA4ImwgRC6gRCagQKuAQAAAAAAAFzXgQJzxYgkxl5CUdSSv5yBACK1nIN1bmSIgQCGhkFfT1BVU1aqg2MuoFa7hATEtACDgQLhkZ+BAbWIQL9AAAAAAABiZIEQY6KTT3B1c0hlYWQBATgBQB8AAAAAABJUw2dA1nNzoGPAgGfImkWjh0VOQ09ERVJEh41MYXZmNjAuMTYuMTAwc3PWY8CLY8WI9sgPkwWcQJtnyKFFo4dFTkNPREVSRIeUTGF2YzYwLjMxLjEwMiBsaWJ2cHhnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAyLjAwMDAwMDAwMABzc9djwItjxYgkxl5CUdSSv2fIokWjh0VOQ09ERVJEh5VMYXZjNjAuMzEuMTAyIGxpYm9wdXNnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAyLjAwODAwMDAwMAAfQ7Z1Rb3ngQCji4IAAIAIC+Y7I6tgo6OBAACAEAIAnQEqEAAQAABHCIWFiIWEiAICAAwNYAD+/6tQgKOKggAVgAgIrLMOxqOKggApgAgIrLMOxqOKggA9gAgIrLMOxqOKggBRgAgIrLMOxqOKggBlgAgIrLMOxqOKggB5gAgIrLMOxqOKggCNgAgIrLMOxqOKggChgAgIrLMOxqOKggC1gAgIrLMOxqOKggDJgAgIrLMOxqOVgQDIALEBAAEQEAAYABhYL/QACAAAo4qCAN2ACAissw7Go4qCAPGACAissw7Go4qCAQWACAissw7Go4qCARmACAissw7Go4qCAS2ACAissw7Go4qCAUGACAissw7Go4qCAVWACAissw7Go4qCAWmACAissw7Go4qCAX2ACAissw7Go4qCAZGACAissw7Go5WBAZAAsQEAARAQABgAGFgv9AAIAACjioIBpYAICKyzDsajioIBuYAICKyzDsajioIBzYAICKyzDsajioIB4YAICKyzDsajioIB9YAICKyzDsajioICCYAICKyzDsajioICHYAICKyzDsajioICMYAICKyzDsajioICRYAICKyzDsajioICWYAICKyzDsajlYECWACxAQABEBAAGAAYWC/0AAgAAKOKggJtgAgIrLMOxqOKggKBgAgIrLMOxqOKggKVgAgIrLMOxqOKggKpgAgIrLMOxqOKggK9gAgIrLMOxqOKggLRgAgIrLMOxqOKggLlgAgIrLMOxqOKggL5gAgIrLMOxqOKggMNgAgIrLMOxqOKggMhgAgIrLMOxqOVgQMgALEBAAEQEAAYABhYL/QACAAAo4qCAzWACAissw7Go4qCA0mACAissw7Go4qCA12ACAissw7Go4qCA3GACAissw7Go4qCA4WACAissw7Go4qCA5mACAissw7Go4qCA62ACAissw7Go4qCA8GACAissw7Go4qCA9WACAissw7Go4qCA+mACAissw7Go5WBA+gAsQEAARAQABgAGFgv9AAIAACjioID/YAICKyzDsajioIEEYAICKyzDsajioIEJYAICKyzDsajioIEOYAICKyzDsajioIETYAICKyzDsajioIEYYAICKyzDsajioIEdYAICKyzDsajioIEiYAICKyzDsajioIEnYAICKyzDsajioIEsYAICKyzDsajlYEEsACxAQABEBAAGAAYWC/0AAgAAKOKggTFgAgIrLMOxqOKggTZgAgIrLMOxqOKggTtgAgIrLMOxqOKggUBgAgIrLMOxqOKggUVgAgIrLMOxqOKggUpgAgIrLMOxqOKggU9gAgIrLMOxqOKggVRgAgIrLMOxqOKggVlgAgIrLMOxqOKggV5gAgIrLMOxqOVgQV4ALEBAAEQEBRgAGFgv9AAIAAAo4qCBY2ACAissw7Go4qCBaGACAissw7Go4qCBbWACAissw7Go4qCBcmACAissw7Go4qCBd2ACAissw7Go4qCBfGACAissw7Go4qCBgWACAissw7Go4qCBhmACAissw7Go4qCBi2ACAissw7Go4qCBkGACAissw7Go5WBBkAAsQEAARAQABgAGFgv9AAIAACjioIGVYAICKyzDsajioIGaYAICKyzDsajioIGfYAICKyzDsajioIGkYAICKyzDsajioIGpYAICKyzDsajioIGuYAICKyzDsajioIGzYAICKyzDsajioIG4YAICKyzDsajioIG9YAICKyzDsajioIHCYAICKyzDsajlYEHCACxAQABEBAAGAAYWC/0AAgAAKOKggcdgAgIrLMOxqOKggcxgAgIrLMOxqOKggdFgAgIrLMOxqOKggdZgAgIrLMOxqOKggdtgAgIrLMOxqOKggeBgAgIrLMOxqOKggeVgAgIrLMOxqOKggepgAgIrLMOxqOKgge9gAgIrLMOxqCToYqCB9EACAissw7GdaKEAM3+YBxTu2uRu4+zgQC3iveBAfGCAmDwgRA=";
+function noSleep(on) {
   const v = $("nosleep");
   if (on && !nosleepOn) {
-    try { const c = document.createElement("canvas"); c.width = c.height = 2; const x = c.getContext("2d"); setInterval(() => { x.fillStyle = Date.now() % 2000 > 1000 ? "#000" : "#010101"; x.fillRect(0, 0, 2, 2); }, 1000); v.srcObject = c.captureStream(1); v.play().then(() => { nosleepOn = true; }).catch(() => {}); } catch (e) {}
-  } else if (!on && nosleepOn) { v.pause(); v.srcObject = null; nosleepOn = false; }
+    try {
+      if (!v.src) { v.src = v.canPlayType("video/webm") ? NS_WEBM : NS_MP4; v.loop = true; v.muted = true; v.setAttribute("playsinline", ""); }
+      v.play().then(() => { nosleepOn = true; }).catch(e => logm("Rezervno ohranjanje zaslona: " + e.message));
+    } catch (e) {}
+  } else if (!on) { if (!v.paused) v.pause(); nosleepOn = false; }
 }
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) { hiddenSince = Date.now(); save(); }
   else {
     if (hiddenSince && Date.now() - hiddenSince > 3000 && S.run && S.src === "cam") { $("bgWarn").style.display = "block"; logm("Vrnitev iz ozadja po " + Math.round((Date.now() - hiddenSince) / 1000) + " s."); }
     hiddenSince = 0;
+    if (LS) wakeOn(true);
     if (S.run) { wakeOn(); if (S.src === "cam" && (!track || track.readyState !== "live")) camRestart(); }
   }
 });
@@ -645,11 +914,16 @@ function keepAliveTick(t) {
   if (g("kaDimAuto") && S.run && t - userAct > 120000 && !$("dim").classList.contains("on")) dimOn();
   const up = S.run ? Math.floor((t - runStart) / 1000) : 0;
   $("kaSt").innerHTML = [
+    ["Verzija", VER],
     ["Delovanje", S.run ? `${Math.floor(up / 3600)} h ${pad(Math.floor(up / 60) % 60)} min ${pad(up % 60)} s` : "ustavljeno"],
-    ["Zaslon", wake ? "Wake Lock aktiven" : nosleepOn ? "rezervni video" : "lahko ugasne"],
+    ["Zaslon", wake ? "Wake Lock aktiven" : (nosleepOn || !$("nosleep").paused) ? "rezervni video" : "lahko ugasne"],
     ["Kamera", S.src !== "cam" ? "–" : stream ? `${fmt(fps, 0)} sl/s, zadnja slika pred ${fmt((t - lastFrame) / 1000, 1)} s` : "izklopljena"],
     ["Ponovni zagoni", camRestarts],
     ["Zadnje shranjevanje", lastSave ? hm(lastSave) + ":" + pad(new Date(lastSave).getSeconds()) : "–"],
+    ["Shramba Chrome", (lsOk === false ? "localStorage NAPAKA" : "localStorage ✓") + " · " + (idbOk === true ? "IndexedDB ✓" : idbOk === false ? "IndexedDB ✗" : "IndexedDB …")],
+    ["Trajna shramba", persisted === true ? "da — Chrome je ne briše" : persisted === false ? "ne — Chrome jo lahko ob pomanjkanju prostora pobriše" : "ni podatka"],
+    ["Velikost", usage != null ? fmt(usage / 1024, 0) + " kB" : "–"],
+    ["Naslov", location.origin === "null" ? "file:// (podatki vezani na to pot)" : location.origin],
     ["Povezava", location.protocol + (location.protocol === "file:" ? " (kamera ne bo delovala)" : "")]
   ].map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join("");
   const dot = $("stDot"); dot.className = "dot" + (S.run ? (S.src === "cam" && t - lastFrame > 3000 ? " err" : " on") : "");
@@ -749,27 +1023,28 @@ function drawGraph() {
   const maxV = Math.max(1e-9, ...vals, ...(line ? pts.map(p => p.mx || 0) : [])) * 1.1;
   const L = 44, Rr = 6, T = 8, B = 26, pw = W - L - Rr, ph = H - T - B;
   const Y = v => T + ph - v / maxV * ph;
-  x.font = "11px Inter,system-ui,sans-serif"; x.fillStyle = "#8a94b4"; x.strokeStyle = "#263055"; x.lineWidth = 1;
+  const C = {dim: cssv("--dim"), line: cssv("--line"), acc: cssv("--acc"), vt: cssv("--vt"), mt: cssv("--mt"), hl: cssv("--hl"), warn: cssv("--warn")};
+  x.font = "11px Inter,system-ui,sans-serif"; x.fillStyle = C.dim; x.strokeStyle = C.line; x.lineWidth = 1;
   for (let i = 0; i <= 4; i++) { const v = maxV / 4 * i, y = Y(v); x.beginPath(); x.moveTo(L, y); x.lineTo(W - Rr, y); x.stroke(); x.textAlign = "right"; x.fillText(fmtAxis(v, unit), L - 5, y + 4); }
   const n = pts.length, bw = pw / n;
   bars = pts.map((p, i) => ({x0: L + i * bw, x1: L + (i + 1) * bw, p}));
   if (line) {
-    x.fillStyle = "#3d6bff22"; x.beginPath(); let st = false;
+    x.fillStyle = C.acc; x.globalAlpha = 0.15; x.beginPath(); let st = false;
     pts.forEach((p, i) => { if (p.mx == null) return; const X = L + (i + .5) * bw; if (!st) { x.moveTo(X, Y(p.mx)); st = true; } else x.lineTo(X, Y(p.mx)); });
     for (let i = n - 1; i >= 0; i--) { const p = pts[i]; if (p.mn != null) x.lineTo(L + (i + .5) * bw, Y(p.mn)); }
-    x.fill();
-    x.strokeStyle = "#3d6bff"; x.lineWidth = 2; x.beginPath(); st = false;
+    x.fill(); x.globalAlpha = 1;
+    x.strokeStyle = C.acc; x.lineWidth = 2; x.beginPath(); st = false;
     pts.forEach((p, i) => { if (p.v == null) { st = false; return; } const X = L + (i + .5) * bw; st ? x.lineTo(X, Y(p.v)) : x.moveTo(X, Y(p.v)); st = true; }); x.stroke();
   } else {
     pts.forEach((p, i) => {
       const X = L + i * bw + Math.max(.5, bw * .12), w = Math.max(1, bw * .76);
-      if (p.sub && g("gMode") === "e") { const h1 = p.sub[0] / maxV * ph, h2 = p.sub[1] / maxV * ph; x.fillStyle = "#ff8a3c"; x.fillRect(X, T + ph - h1, w, h1); x.fillStyle = "#6e8cff"; x.fillRect(X, T + ph - h1 - h2, w, h2); }
-      else { x.fillStyle = i === n - 1 ? "#9fb4ff" : (p.mt === undefined ? "#3d6bff" : p.mt ? "#6e8cff" : "#ff8a3c"); const y = Y(p.v || 0); x.fillRect(X, y, w, T + ph - y); }
+      if (p.sub && g("gMode") === "e") { const h1 = p.sub[0] / maxV * ph, h2 = p.sub[1] / maxV * ph; x.fillStyle = C.vt; x.fillRect(X, T + ph - h1, w, h1); x.fillStyle = C.mt; x.fillRect(X, T + ph - h1 - h2, w, h2); }
+      else { x.fillStyle = i === n - 1 ? C.hl : (p.mt === undefined ? C.acc : p.mt ? C.mt : C.vt); const y = Y(p.v || 0); x.fillRect(X, y, w, T + ph - y); }
     });
   }
-  if (vals.length) { const avg = vals.reduce((a, b) => a + b, 0) / vals.length; x.strokeStyle = "#ffb020"; x.setLineDash([4, 4]); x.beginPath(); x.moveTo(L, Y(avg)); x.lineTo(W - Rr, Y(avg)); x.stroke(); x.setLineDash([]); }
+  if (vals.length) { const avg = vals.reduce((a, b) => a + b, 0) / vals.length; x.strokeStyle = C.warn; x.setLineDash([4, 4]); x.beginPath(); x.moveTo(L, Y(avg)); x.lineTo(W - Rr, Y(avg)); x.stroke(); x.setLineDash([]); }
   // oznake osi x
-  x.fillStyle = "#8a94b4"; x.textAlign = "center";
+  x.fillStyle = C.dim; x.textAlign = "center";
   const every = Math.ceil(n / Math.max(2, Math.floor(pw / 58)));
   pts.forEach((p, i) => { if ((n - 1 - i) % every === 0) x.fillText(p.lbl, L + (i + .5) * bw, H - 8); });
   // povzetek
@@ -834,14 +1109,438 @@ $("bDemo").onclick = () => {
   simEv = []; save(); render(); drawGraph(); logm("Ustvarjeni demo podatki za 30 dni."); $("bDemo").textContent = "Demo podatki (30 dni)";
 };
 
+/* ===================== SIMULATOR LED (drugi telefon) ===================== */
+// zaslon utripa kot LED števca; drsnik = hitrost utripanja (moč 10 W … 20 kW, logaritemsko)
+const ledPow = raw => 10 * Math.pow(2000, raw / 1000);
+let LS = null; // {next, offAt, cnt, wh, varEv, t0}
+function ledTarget(t) {
+  const base = ledPow(+g("ledP"));
+  if (g("ledMode") !== "var") return base;
+  // spremenljiva poraba: osnova z drsnika + nihanje + naključni porabniki
+  let p = base * (0.85 + 0.15 * Math.sin(t / 9000));
+  LS.varEv = LS.varEv.filter(e => e.end > t);
+  const iv0 = whpp() * 3600000 / base; // povprečno en nov porabnik na 90 s
+  if (Math.random() < Math.min(1, iv0 / 90000)) LS.varEv.push({p: base * (1 + Math.random() * 4), end: t + 8000 + Math.random() * 40000});
+  LS.varEv.forEach(e => p += e.p);
+  return Math.min(p, 40000);
+}
+// utrip = 10 % intervala (90 % ugasnjeno); najmanj 40 ms (da ga kamera ujame), največ 1,2 s (sprejemnik daljši svetlobni skok šteje kot spremembo osvetlitve prostora)
+const ledOnMs = iv => Math.min(1200, Math.max(40, iv * 0.1));
+function ledLabels() {
+  const p = ledPow(+g("ledP")), dt = whpp() * 3600 / p, on = ledOnMs(dt * 1000);
+  const txt = `${fmtAxis(p, "W")} · Δt ${fmt(dt, dt < 10 ? 2 : 1)} s · ${fmt(60 / dt, 1)} imp/min`;
+  $("ledPL").textContent = txt; $("ledPL2").textContent = txt;
+  $("ledWL").textContent = `${fmt(on, 0)} ms prižgano · ${fmt(dt * 1000 - on, 0)} ms ugasnjeno (${fmt(on / (dt * 10), 0)} %)`;
+  $("ledSzL").textContent = g("ledSz") + " % zaslona"; $("ledSzL2").textContent = g("ledSz") + " %";
+  $("ledP2").value = g("ledP"); $("ledSz2").value = g("ledSz"); $("ledCol2").value = g("ledCol");
+  $("ledMode2").textContent = g("ledMode") === "var" ? "Spremenljiva" : "Stalna moč";
+}
+function ledSize() { const sz = Math.round(Math.min(innerWidth, innerHeight) * g("ledSz") / 100); const dot = $("ledDot"); dot.style.width = dot.style.height = sz + "px"; }
+const LEDC = {red: ["#ff2a1a", "#1a0606"], white: ["#ffffff", "#111111"], green: ["#2aff4a", "#061a08"], blue: ["#2a6bff", "#060a1a"], yellow: ["#ffe02a", "#1a1606"]};
+function ledOpen() {
+  ledSize();
+  LS = {next: performance.now() + 500, offAt: 0, cnt: 0, wh: 0, varEv: [], on: false};
+  $("ledOv").classList.add("on"); ledLabels();
+  wakeOn(true); // brez celozaslonskega načina: Android ob njem prikaže moteče obvestilo
+  requestAnimationFrame(ledFrame); ledWakeSt();
+  logm("Simulator LED zagnan.");
+}
+function ledClose() {
+  $("ledOv").classList.remove("on"); LS = null;
+  if (!S.run || !g("kaWake")) wakeOff();
+}
+function ledFrame(now) {
+  if (!LS) return;
+  const col = LEDC[g("ledCol")] || LEDC.red, dot = $("ledDot");
+  if (!LS.on && now >= LS.next) {
+    LS.p = ledTarget(Date.now());
+    const iv = whpp() * 3600000 / LS.p, on = ledOnMs(iv);
+    LS.on = true; LS.offAt = now + on; LS.cnt++; LS.wh += whpp();
+    const base = now - LS.next > iv ? now : LS.next; // po premoru znova uskladi
+    LS.next = Math.max(base + iv, now + on + 20); // čas naslednjega utripa (brez lezenja ure)
+    dot.style.background = col[0]; dot.style.boxShadow = `0 0 40px ${col[0]}`;
+    $("ledNow").textContent = fmtAxis(LS.p, "W");
+    $("ledCnt").textContent = `${LS.cnt} imp · ${fmt(LS.wh / 1000, 3)} kWh`;
+  } else if (LS.on && now >= LS.offAt) {
+    LS.on = false; dot.style.background = col[1]; dot.style.boxShadow = "none";
+  }
+  requestAnimationFrame(ledFrame);
+}
+let ledWakeT = 0;
+function ledWakeSt() { // zaslon mora ostati prižgan: ob izgubi zaklepa ga ponovno zahtevaj (brez izpisa)
+  clearTimeout(ledWakeT);
+  if (!LS) return;
+  if (!wake && !document.hidden) wakeOn(true);
+  ledWakeT = setTimeout(ledWakeSt, 5000);
+}
+$("bLed").onclick = ledOpen;
+$("ledExit").onclick = ledClose;
+$("ledReset").onclick = () => { if (LS) { LS.cnt = 0; LS.wh = 0; $("ledCnt").textContent = "0 imp · 0,000 kWh"; } };
+$("ledP2").addEventListener("input", () => { $("ledP").value = $("ledP2").value; uiToSet(); ledLabels(); saveSoon(); if (LS) LS.next = Math.min(LS.next, performance.now() + whpp() * 3600000 / ledTarget(Date.now())); });
+$("ledP").addEventListener("input", () => { uiToSet(); ledLabels(); saveSoon(); });
+$("ledSz").addEventListener("input", () => { uiToSet(); ledLabels(); ledSize(); saveSoon(); });
+$("ledSz2").addEventListener("input", () => { $("ledSz").value = $("ledSz2").value; uiToSet(); ledLabels(); ledSize(); saveSoon(); });
+$("ledCol").addEventListener("change", () => { uiToSet(); ledLabels(); save(); });
+$("ledCol2").addEventListener("change", () => { $("ledCol").value = $("ledCol2").value; uiToSet(); ledLabels(); save(); if (LS && !LS.on) $("ledDot").style.background = (LEDC[g("ledCol")] || LEDC.red)[1]; });
+addEventListener("resize", () => { if (LS) ledSize(); });
+$("ledMode2").onclick = () => { $("ledMode").value = g("ledMode") === "var" ? "const" : "var"; uiToSet(); ledLabels(); save(); };
+
+/* ===================== BARVNE PALETE ===================== */
+// bg, pan, pan2, ink, dim, line, acc, acc2 (glava), field, hl, vt, mt, warn, ok, hot, topink, svetla
+const PAL = {
+  kobalt:   ["Kobalt",          "#0a0d18","#121829","#18203a","#e8ecf8","#8a94b4","#263055","#3d6bff","#1240e0","#0d1222","#9fb4ff","#ff8a3c","#6e8cff","#ffb020","#2fd18a","#ff5a3c","#ffffff",0],
+  oled:     ["Noč (OLED)",      "#000000","#0b0b0d","#151518","#e6e6e6","#8a8a92","#222228","#4a7dff","#0d0d10","#08080a","#9db6ff","#ff8a3c","#6e8cff","#ffb020","#2fd18a","#ff4a3a","#e6e6e6",0],
+  gozd:     ["Gozd",            "#0b1410","#12201a","#1a2d24","#e4f1e8","#8fb09c","#26402f","#3fbf7f","#1f6e48","#0d1913","#9fe3bd","#ffb347","#5fb0ff","#ffd34d","#3fe08a","#ff6a4a","#f2fff6",0],
+  zerjavica:["Žerjavica",       "#140d0a","#1f1510","#2b1d16","#f5e9e2","#b49a8b","#3e2a20","#ff7a3c","#b2431a","#180f0b","#ffc39e","#ff7a3c","#6aa8ff","#ffd04d","#4fd18a","#ff3b3b","#fff4ee",0],
+  morje:    ["Morje",           "#071417","#0d2125","#132e33","#e2f4f5","#86aeb2","#1f4247","#22b8c8","#0e6f7a","#091a1d","#8fe6ee","#ff9a4a","#4f9dff","#ffd24d","#33d69a","#ff5a4a","#f0feff",0],
+  grafit:   ["Grafit",          "#121314","#1b1d1f","#25282b","#ececec","#9a9fa5","#33373b","#8aa4c8","#3a3f45","#161819","#c9d6e8","#e8955a","#7fa6e0","#e0c060","#6cc79a","#e05a4a","#f2f2f2",0],
+  ametist:  ["Ametist",         "#110c1a","#1a1328","#241b36","#eee8f8","#a596bf","#352a4d","#9a6bff","#5a2fc2","#140e20","#cbb5ff","#ff9a5a","#6ab0ff","#ffd04d","#3fd69a","#ff5a6a","#faf6ff",0],
+  rdeca:    ["Rdeča noč",       "#0a0000","#140303","#1e0606","#ff6a5a","#a8443a","#3a0e0a","#ff3b2a","#4a0a06","#0e0101","#ff8a7a","#ff5a3a","#b8402e","#ff8a3a","#ff6a5a","#ff2a1a","#ff7a6a",0],
+  kontrast: ["Visok kontrast",  "#000000","#000000","#141414","#ffffff","#ffe600","#ffffff","#ffe600","#000000","#000000","#ffe600","#ff8c00","#00b4ff","#ffe600","#00ff6a","#ff3030","#ffe600",0],
+  dan:      ["Dan",             "#eef2fa","#ffffff","#e7ecf7","#141a2e","#5a6383","#d2d9ea","#2456e8","#1240e0","#f6f8fd","#1f49c9","#e8701e","#3d6bff","#c98a00","#14a86a","#d8341e","#ffffff",1],
+  papir:    ["Papir",           "#f4efe6","#fffaf2","#efe6d8","#2a241c","#7a6c5a","#ddd0bc","#b5532a","#8a3d1c","#fbf6ee","#8a3d1c","#d0662a","#3f72b8","#b08400","#3d8a52","#c43020","#fffaf2",1],
+  mint:     ["Mint",            "#eaf5ef","#ffffff","#dff0e6","#12261b","#557563","#c8e2d2","#16935a","#0f7a4a","#f4fbf7","#0f6e43","#e07a1e","#2f6fd8","#b88600","#16935a","#d0402a","#ffffff",1],
+};
+const PKEYS = ["bg","pan","pan2","ink","dim","line","acc","acc2","field","hl","vt","mt","warn","ok","hot","topink"];
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || "#888";
+function applyTheme(k) {
+  const p = PAL[k] || PAL.kobalt, st = document.documentElement.style;
+  PKEYS.forEach((v, i) => st.setProperty("--" + v, p[i + 1]));
+  const light = p[17];
+  st.setProperty("--wbg", light ? "#fff1d6" : "#3a2a08"); st.setProperty("--wbd", light ? "#e8c27a" : "#6a4a10"); st.setProperty("--wink", light ? "#6a4a00" : "#ffd890");
+  st.setProperty("--redb", light ? "#fbe0da" : "#5a1a12"); st.setProperty("--redbd", light ? "#e0a090" : "#8a2a1a");
+  st.setProperty("--onacc", k === "kontrast" || k === "rdeca" ? "#000000" : "#ffffff");
+  st.colorScheme = light ? "light" : "dark";
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = p[8];
+  [...$("pal").children].forEach(b => b.classList.toggle("on", b.dataset.k === k));
+  if (typeof drawGraph === "function") { try { drawGraph(); } catch (e) {} }
+}
+$("pal").innerHTML = Object.keys(PAL).map(k => { const p = PAL[k];
+  return `<button data-k="${k}" style="background:${p[2]};color:${p[4]};border-color:${p[6]}">${p[0]}<span class="sw"><i style="background:${p[7]}"></i><i style="background:${p[11]}"></i><i style="background:${p[12]}"></i><i style="background:${p[14]}"></i><i style="background:${p[1]}"></i></span></button>`; }).join("");
+$("pal").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.set.theme = b.dataset.k; applyTheme(b.dataset.k); save(); });
+
+/* ===================== POMOČ ===================== */
+const HELP = {
+splosno: ["Pomoč — splošno", `
+<h3>Namen programa</h3>
+<p>Števec elektrike je namenjen sprotnemu (online) spremljanju porabe elektrike. Poudarek je na <b>trenutni porabi</b>: takoj vidiš in slišiš, koliko porabljaš v tem trenutku in kaj se zgodi, ko vklopiš ali izklopiš posamezen porabnik. Na portalu Moj elektro so podatki na voljo šele z zamikom, trenutne porabe tam ne dobiš.</p>
+<p>Plin in voda sta zaenkrat samo testno (glej pomoč v razdelku »Vir impulzov«).</p>
+<h3>Kako meri</h3>
+<p>Vsak sodoben števec ima LED diodo, ki ob vsaki porabljeni enoti energije enkrat utripne. Na ploščici števca piše, koliko utripov je ena kilovatna ura, npr. <b>1000 imp/kWh</b>. Pri 1000 imp/kWh je en utrip 1 Wh.</p>
+<p>Telefon s kamero gleda LED in meri čas med dvema utripoma (Δt). Iz tega izračuna moč:</p>
+<p class="hf">P [W] = (3600 / Δt [s]) × (1000 / imp/kWh)</p>
+<p>Primer pri 1000 imp/kWh: utrip vsake 3,6 s pomeni 1000 W, utrip vsakih 36 s pomeni 100 W.</p>
+<h3>Pred prvo uporabo</h3>
+<ol>
+<li>Na števcu preberi število impulzov na kWh in ga vpiši v <b>Nastavitve števca → Impulzov na kWh</b>. Če se ne ujema, so moč, poraba in strošek napačni.</li>
+<li>Vpiši trenutno stanje števca in cene VT in MT s svojega računa.</li>
+<li>Program odpiraj vedno na istem naslovu prek https (npr. https://etravniksi.github.io/TEST/…). Iz mape Prenosi Chrome kamere ne dovoli, poleg tega Chrome podatke hrani ločeno za vsak naslov.</li>
+</ol>
+<h3>Hiter začetek</h3>
+<ol>
+<li>Telefon pritrdi 5–15 cm pred LED števca, s kamero naravnost proti njej. Priklopi polnilec.</li>
+<li>V razdelku <b>Vir impulzov</b> izberi »Kamera« in tapni <b>Zaženi</b>. Dovoli dostop do kamere.</li>
+<li>Program sam poišče LED, nastavi osvetlitev, prag in barvni filter. Lahko pa tudi sam tapneš na LED v sliki.</li>
+<li>Ob vsakem utripu zeleno okno za trenutek zasveti rdeče, moč in Δt se osvežita.</li>
+<li>Pusti stran odprto spredaj. Za manjšo porabo baterije uporabi gumb <b>Temni</b>.</li>
+</ol>
+<h3>Razdelki</h3>
+<ul>
+<li><b>Trenutna moč</b> — velika številka moči in kazalniki porabe.</li>
+<li><b>Grafi</b> — poraba v živo, po 15 min, 30 min, urah, dnevih, mesecih.</li>
+<li><b>Vir impulzov</b> — kamera, simulator ali ročni impulz; nastavitve kamere.</li>
+<li><b>Govor</b> — glasovna obvestila v rednih intervalih in ob dogodkih.</li>
+<li><b>Nastavitve števca</b> — impulzi na kWh, stanje števca, cene.</li>
+<li><b>Stalno delovanje</b> — prižgan zaslon, samodejni zagon, stanje shrambe.</li>
+<li><b>Simulator LED</b> — drugi telefon utripa kot števec, za preizkus.</li>
+<li><b>Podatki</b> — izvoz, varnostna kopija, uvoz, brisanje.</li>
+</ul>
+<p>Vsak razdelek ima svoj gumb <b>?</b> z natančnim opisom.</p>
+<h3>Gumbi v glavi</h3>
+<ul>
+<li><b>Pika</b> levo: siva = ustavljeno, zelena = deluje, rdeča = kamera ne pošilja slike.</li>
+<li><b>Oznaka verzije</b> (npr. ${VER}).</li>
+<li><b>Pomoč</b> — ta stran.</li>
+<li><b>Temni</b> — črn zaslon z veliko številko moči; tapni za izhod.</li>
+<li><b>⛶</b> — celozaslonski način (Android ob vklopu prikaže sistemsko obvestilo).</li>
+</ul>`],
+
+moc: ["Pomoč — trenutna moč in kazalniki", `
+<h3>Trenutna moč</h3>
+<p>Velika številka je moč, izračunana iz časa med zadnjima utripoma. Desno je <b>Δt impulza</b> (čas med zadnjima utripoma) in vir, ki trenutno deluje.</p>
+<p>Če naslednji utrip zamuja dlje, kot je trajal zadnji razmik, moč postopno pada. Program ve, da je poraba vsaj tolikšna, da bi utrip že moral priti, zato prikaže zgornjo možno mejo. Tako ob izklopu porabnika moč pade takoj, ne šele ob naslednjem utripu.</p>
+<p>Pri nastavitvi »Povprečje čez impulzov« večje od 1 je moč povprečje zadnjih nekaj razmikov (mirnejši prikaz, počasnejši odziv).</p>
+<h3>Kazalniki</h3>
+<ul>
+<li><b>Danes</b> — poraba od polnoči v kWh in strošek v € po tarifah VT/MT.</li>
+<li><b>Včeraj</b> — celodnevna poraba in strošek prejšnjega dne.</li>
+<li><b>Ta mesec</b> — poraba od 1. v mesecu.</li>
+<li><b>Napoved meseca</b> — dosedanja poraba, preračunana na cel mesec po dosedanjem povprečju na dan.</li>
+<li><b>Min / max danes</b> — najmanjša in največja moč danes, iz sekundnih meritev.</li>
+<li><b>Osnovna poraba 24 h</b> — najnižje 30-minutno povprečje v zadnjih 24 urah. To je poraba naprav, ki delujejo ves čas (hladilnik, router, stanje pripravljenosti). Visoka osnovna poraba pomeni skrite porabnike.</li>
+<li><b>Zadnjih 60 s</b> — povprečna moč zadnje minute ter najmanjša in največja.</li>
+<li><b>Stanje števca</b> — začetno stanje iz nastavitev + vsi prešteti impulzi. Občasno ga primerjaj s številko na števcu: razlika pomeni zgrešene ali lažne impulze. Pod njim je skupno število impulzov.</li>
+</ul>`],
+
+grafi: ["Pomoč — grafi", `
+<h3>Zavihki</h3>
+<ul>
+<li><b>Živo 5 min</b> — moč vsako sekundo zadnjih 5 minut.</li>
+<li><b>Živo 1 h</b> — moč zadnje ure, povprečja po 30 s.</li>
+<li><b>15 min · 24 h</b> — zadnjih 24 ur v 15-minutnih intervalih (kot jih meri tudi distributer).</li>
+<li><b>30 min · 24 h</b> in <b>1 h · 24 h</b> — enako, v daljših intervalih.</li>
+<li><b>1 h · 48 h</b> — zadnja dva dneva po urah.</li>
+<li><b>Teden · ure</b> — zadnjih 168 ur.</li>
+<li><b>7 dni</b> in <b>Mesec · dnevi</b> — dnevna poraba zadnjih 7 oz. 31 dni.</li>
+<li><b>Leto · meseci</b> — mesečna poraba zadnjih 12 mesecev.</li>
+</ul>
+<h3>Prikaz</h3>
+<p>Izbirnik desno zgoraj določa, kaj prikazujejo stolpci:</p>
+<ul>
+<li><b>Energija (kWh)</b> — porabljena energija v intervalu.</li>
+<li><b>Povprečna moč (W)</b> — povprečna moč v intervalu.</li>
+<li><b>Strošek (€)</b> — energija × cena tarife v tistem času.</li>
+</ul>
+<h3>Barve in oznake</h3>
+<ul>
+<li><b>Oranžno</b> = višja tarifa (VT), <b>modro</b> = nižja tarifa (MT). Pri dnevih sta VT in MT zložena v isti stolpec.</li>
+<li><b>Svetlejši zadnji stolpec</b> je tekoči, še nedokončan interval.</li>
+<li><b>Rumena črtkana črta</b> je povprečje vseh prikazanih intervalov.</li>
+<li>Pri grafih v živo je modra črta povprečje, svetlo polje okoli nje pa razpon med najmanjšo in največjo moč.</li>
+</ul>
+<h3>Podrobnosti</h3>
+<p>Dotakni se stolpca: zgoraj se izpiše čas, vrednost, najmanjša in največja moč v tem intervalu ter delitev na VT in MT.</p>
+<p>Pod grafom je povzetek: skupna vrednost, interval z največjo porabo in povprečje.</p>
+<h3>Koliko časa se hrani</h3>
+<p>Minutni podatki (za grafe do 48 h) se hranijo 8 dni, urni približno 2 leti, dnevni neomejeno. Za starejše dneve so grafi 15/30 min prazni, dnevni in mesečni pa ostanejo.</p>`],
+
+vir: ["Pomoč — vir impulzov in kamera", `
+<h3>Vir impulzov</h3>
+<ul>
+<li><b>Kamera (LED na števcu)</b> — običajna uporaba.</li>
+<li><b>Simulator (preizkus)</b> — program sam ustvarja utripe kot v gospodinjstvu (osnovna poraba, hladilnik, jutranja in večerna poraba, naključni večji porabniki). Teče v realnem času. Primeren za preizkus grafov in govora brez števca.</li>
+<li><b>Ročno (tipka)</b> — vsak pritisk na »Impulz +1« je en utrip. Za preizkus ali ročno štetje.</li>
+</ul>
+<p><b>Zaženi / Ustavi</b> vklopi ali izklopi štetje. Ob spremembi vira med delovanjem se števec sam ponovno zažene.</p>
+<h3>Postavitev telefona</h3>
+<ol>
+<li>Poišči LED z oznako imp/kWh (ne lučke za napako ali komunikacijo).</li>
+<li>Telefon pritrdi 5–15 cm pred LED, s kamero naravnost vanjo. Telefon se ne sme premikati.</li>
+<li>Prepreči odseve sonca ali luči na steklu števca; po potrebi naredi senčnik iz kartona.</li>
+<li>Priklopi polnilec in za Chrome izklopi varčevanje z baterijo.</li>
+</ol>
+<h3>Slika in okno</h3>
+<p><b>Zeleno okno</b> je del slike, ki ga program opazuje. Ob utripu zasveti rdeče.</p>
+<ul>
+<li>Ob prvem zagonu program LED <b>poišče sam</b>: išče točko, ki večkrat utripne neodvisno od ostale slike. Potrebuje vsaj 3 utripe, zato pri majhni porabi traja dlje; vklopi večjega porabnika (kuhalnik) za hitrejše iskanje. Iskanje traja največ 3 minute.</li>
+<li>Gumb <b>Poišči LED samodejno</b> iskanje ponovi. Med iskanjem kaže pretečeni čas; ponoven pritisk ga ustavi.</li>
+<li>Okno lahko postaviš tudi sam: <b>tapni na LED</b> v sliki ali okno <b>povleci</b>.</li>
+</ul>
+<h3>Graf signala</h3>
+<ul>
+<li><b>Zelena črta</b> — svetlost v oknu.</li>
+<li><b>Siva črta</b> — ozadje (svetlost, ko LED ne sveti).</li>
+<li><b>Rumena črta</b> — prag. Ko zelena preseže rumeno, je to utrip.</li>
+</ul>
+<p>Pod grafom so vrednosti signala, ozadja, praga in število slik na sekundo (običajno okrog 30).</p>
+<h3>Nastavitve kamere</h3>
+<ul>
+<li><b>Velikost okna</b> (12–140 px) — naj zajame LED in malo okolice. Premajhno okno lahko LED izgubi ob premiku, preveliko zajame več motenj.</li>
+<li><b>Velikost spremembe</b> (3–80, privzeto 12) — najmanjši skok svetlosti, ki še šteje kot utrip. Edina nastavitev praga, ki jo določiš sam. Višje = manj lažnih impulzov, a šibek LED se lahko zgreši. Nižje = občutljivejše.</li>
+<li><b>Barvni filter</b>:
+ <ul>
+ <li><b>Samodejno</b> (priporočeno) — program sproti izbere kanal z najboljšim razmerjem med utripom in šumom.</li>
+ <li><b>Svetlost</b> — celotna svetlost; občutljiva na spremembe luči v prostoru.</li>
+ <li><b>Rdeča, zelena, modra</b> — samo ena barva.</li>
+ <li><b>Rdeča − modra</b> — najboljše za rdeč LED: bela svetloba (luči, sonce) se odšteje, zato jo ne moti.</li>
+ </ul></li>
+<li><b>Vrsta števca</b>:
+ <ul>
+ <li><b>Elektrika (LED utrip)</b> — utrip šteje, ko LED ugasne. Svetlobni skok, ki traja dlje kot 1,5 s, ne šteje: program ga razume kot spremembo osvetlitve v prostoru (npr. prižgana luč) in nastavi novo ozadje.</li>
+ <li><b>Plin / voda – oznaka (test)</b> — za števce brez LED. Števec mora biti ves čas osvetljen s stalno lučko (ne utripajočo). Okno postavi na odsevno oznako ali zadnje kolesce. Vsak prehod oznake je en impulz; v nastavitve vpiši, koliko prehodov je 1 m³. Enote se še vedno izpisujejo kot kWh in W.</li>
+ </ul></li>
+<li><b>Kamera</b> — zadnja ali sprednja.</li>
+</ul>
+<h3>Kaj nastavlja program sam (ves čas)</h3>
+<ul>
+<li><b>Prag</b> — največja od treh vrednosti: velikost spremembe, 5 × šum slike, polovica višine zadnjih utripov. Tako se prilagaja svetlobi in moči LED.</li>
+<li><b>Osvetlitev kamere</b> — dolg čas osvetlitve (33 ms), da ujame tudi kratek utrip; svetlost uravnava z ISO ali kompenzacijo, da je ozadje temno, LED pa ni v nasičenju. Med prilagajanjem (0,7 s) se ne šteje.</li>
+<li><b>Ostrina in beli balans</b> se po 3 s zakleneta, da kamera ob utripu ne »lovi«.</li>
+</ul>
+<p>Če telefon ročne osvetlitve ne podpira, piše »kamera samodejno«; prag in filter delujeta tudi tako.</p>
+<h3>Stanje pod nastavitvami</h3>
+<p>Izbrani barvni filter, trenutni prag, šum in višina utripa, način osvetlitve in kolikokrat je bila prilagojena.</p>
+<h3>Težave</h3>
+<ul>
+<li><b>Impulzi brez utripa</b> — povečaj velikost spremembe, zmanjšaj okno, zasenči števec, izberi »Rdeča − modra«.</li>
+<li><b>Utrip je, impulza ni</b> — zmanjšaj velikost spremembe, približaj telefon, ponovi iskanje LED.</li>
+<li><b>En utrip šteje dvakrat</b> — v nastavitvah povečaj »Najkrajši razmik«.</li>
+<li><b>»Kamera ni dosegljiva«</b> — stran ni odprta prek https ali kamera ni dovoljena v nastavitvah Chroma.</li>
+</ul>`],
+
+govor: ["Pomoč — govor", `
+<h3>Osnovno</h3>
+<ul>
+<li><b>Govor vklopljen</b> — glavno stikalo za vsa glasovna obvestila.</li>
+<li><b>Glas</b> — glasovi, nameščeni v telefonu; slovenski so na vrhu. Če slovenskega ni, ga namesti v nastavitvah Androida (Pretvorba besedila v govor).</li>
+<li><b>Hitrost</b> (0,6–1,8×) in <b>glasnost</b>.</li>
+<li><b>Slog</b> — <b>Polno</b> (»Moč 1250 vatov, najmanj 300 …«) ali <b>Kratko</b> (samo številke, primerno za pogosta obvestila).</li>
+</ul>
+<h3>Periodična obvestila</h3>
+<p>Za vsak interval (vsako sekundo, 10 s, 30 s, minuto, 5 min, 15 min, pol ure, uro) vklopiš obvestilo in izbereš, kaj pove:</p>
+<ul>
+<li><b>ura</b> — trenutni čas,</li>
+<li><b>trenutna</b> — trenutna moč,</li>
+<li><b>min / max / povprečje</b> — najmanjša, največja in povprečna moč v tem intervalu (npr. v zadnjih 15 minutah),</li>
+<li><b>energija intervala</b> — porabljeno v tem intervalu,</li>
+<li><b>danes kWh</b> in <b>strošek danes</b>,</li>
+<li><b>napoved meseca</b>.</li>
+</ul>
+<p>Intervali so poravnani na uro: 15-minutni govori ob :00, :15, :30 in :45. Če ob istem času pride na vrsto več intervalov, se pove samo najdaljši (ob polni uri samo urno obvestilo, ne še minutnega).</p>
+<p>Obvestilo vsako sekundo se izpusti, če govor še teče, da se ne nabirajo.</p>
+<h3>Dogodki</h3>
+<ul>
+<li><b>Opozorilo nad (W)</b> — ko moč preseže mejo, enkrat opozori; znova šele, ko moč pade pod 90 % meje in spet naraste.</li>
+<li><b>Skok moči nad (W)</b> — ko se moč za toliko spremeni in tako ostane vsaj 3 sekunde, pove »Vklop porabnika, plus … vatov« ali »Izklop porabnika, minus …«. Uporabno za iskanje, koliko porabi posamezna naprava.</li>
+<li><b>Ni impulzov (min)</b> — opozori, če toliko minut ni nobenega utripa (premaknjena kamera, izpad).</li>
+<li><b>Dnevna meja (kWh)</b> — enkrat na dan opozori, ko dnevna poraba preseže mejo.</li>
+<li><b>Nov dnevni maksimum</b> — pove, ko moč preseže dosedanji dnevni vrh (vsaj za 5 % in nad 500 W).</li>
+</ul>
+<h3>Tihi čas</h3>
+<p>V nastavljenem času (npr. 22:00–07:00) so periodična obvestila, skoki in maksimumi tiho. Opozorila nad mejo, ni impulzov in dnevna meja se povedo tudi takrat.</p>
+<h3>Gumba</h3>
+<ul>
+<li><b>Preizkusi govor</b> — preveri glas, hitrost in glasnost.</li>
+<li><b>Povej stanje zdaj</b> — uro, moč, današnjo porabo, strošek in napoved meseca.</li>
+</ul>
+<p>Telefon mora imeti vklopljen zvok predstavnosti. Govor deluje le, ko je stran odprta spredaj.</p>`],
+
+nastavitve: ["Pomoč — nastavitve števca in cene", `
+<h3>Nastavitve števca</h3>
+<ul>
+<li><b>Impulzov na kWh</b> — z napisne ploščice števca (npr. 1000, 800, 500, 10000). <b>Najpomembnejša nastavitev</b>: napačna vrednost pomeni napačno moč, porabo in strošek. Pri plinu/vodi vpiši impulze na m³.</li>
+<li><b>Najkrajši razmik (ms)</b> — utrip, ki pride prej od tega časa po prejšnjem, se ne šteje (zaščita pred dvojnim štetjem). Privzeto 60 ms omogoča do 60 kW pri 1000 imp/kWh. Povečaj, če en utrip šteje dvakrat.</li>
+<li><b>Povprečje čez impulzov</b> — 1 = moč iz zadnjega razmika (najhitrejši odziv). 3–5 = povprečje več razmikov, mirnejši prikaz pri nihajoči porabi.</li>
+<li><b>Stanje števca ob zagonu (kWh)</b> — vpiši številko, ki jo kaže števec ob začetku merjenja. Program prišteva impulze in kaže »Stanje števca«, ki ga lahko primerjaš z dejanskim.</li>
+</ul>
+<h3>Cena</h3>
+<ul>
+<li><b>VT in MT €/kWh</b> — cena energije za višjo in nižjo tarifo. Vpiši ceno z računa, z DDV. Privzeti vrednosti sta samo primer.</li>
+<li><b>MT od ure / do ure</b> — čas nižje tarife (privzeto 22–6).</li>
+<li><b>Vikend v celoti MT</b> — sobota in nedelja cel dan nižja tarifa.</li>
+</ul>
+<p>Strošek vključuje samo energijo, ne omrežnine, prispevkov in drugih postavk računa. Ob spremembi cene se preračuna tudi strošek preteklih dni.</p>
+<h3>Barvna paleta</h3>
+<p>Izbereš eno od 12 palet. Barve se zamenjajo takoj v celem programu, tudi v grafih:</p>
+<ul>
+<li><b>Temne:</b> Kobalt (privzeta), Noč (OLED, čisto črna, najmanjša poraba baterije na zaslonih OLED), Gozd, Žerjavica, Morje, Grafit, Ametist.</li>
+<li><b>Rdeča noč</b> — samo rdeči odtenki, ponoči ne zaslepi in ohrani nočni vid.</li>
+<li><b>Visok kontrast</b> — črna, bela in rumena, za slabši vid ali močno sonce.</li>
+<li><b>Svetle:</b> Dan, Papir, Mint — za delo podnevi.</li>
+</ul>
+<p>Na vsakem gumbu so pikice z glavnimi barvami palete: poudarek, VT, MT, zelena (signal) in ozadje. Zaslon simulatorja LED in »Temni« ostaneta vedno črna, da ne motita kamere in ne trošita baterije.</p>
+<p>Vse nastavitve se shranijo takoj ob spremembi.</p>`],
+
+stalno: ["Pomoč — stalno delovanje", `
+<h3>Pomembno</h3>
+<p>Program mora biti <b>odprt spredaj na zaslonu</b>. Ko je stran v ozadju ali je zaslon ugasnjen, Chrome kamero ustavi in utripi se izgubijo. Če se to zgodi, se v tem razdelku prikaže opozorilo.</p>
+<h3>Stikala</h3>
+<ul>
+<li><b>Zaslon vedno prižgan</b> — med delovanjem prepreči ugašanje zaslona. Če telefon tega ne omogoča, uporabi rezervni način (tih video v ozadju).</li>
+<li><b>Samodejni zagon ob odprtju strani</b> — če je števec ob zaprtju deloval, se ob ponovnem odprtju sam zažene in nadaljuje z zadnjo meritvijo.</li>
+<li><b>Samodejni ponovni zagon kamere</b> — če kamera 5 s ne pošlje slike ali jo sistem prekine, jo program znova zažene.</li>
+<li><b>Po 2 min samodejno temni zaslon</b> — po 2 minutah brez dotika vklopi črn zaslon z veliko številko moči. Merjenje teče naprej; tapni za izhod.</li>
+</ul>
+<h3>Stanje</h3>
+<ul>
+<li><b>Verzija</b> programa.</li>
+<li><b>Delovanje</b> — kako dolgo števec teče brez prekinitve.</li>
+<li><b>Zaslon</b> — ali je zaslon zaklenjen prižgan.</li>
+<li><b>Kamera</b> — slike na sekundo in kdaj je prišla zadnja slika.</li>
+<li><b>Ponovni zagoni</b> — kolikokrat je bila kamera ponovno zagnana.</li>
+<li><b>Zadnje shranjevanje</b> — podatki se shranijo vsakih 15 s, ob vsaki spremembi nastavitev in ob zaprtju strani.</li>
+<li><b>Shramba Chrome</b> — podatki so shranjeni dvakrat (localStorage in IndexedDB). Ob odprtju se naloži novejša kopija.</li>
+<li><b>Trajna shramba</b> — ali je Chrome dovolil, da podatkov ob pomanjkanju prostora ne briše. Če ni, občasno naredi varnostno kopijo.</li>
+<li><b>Velikost, naslov, povezava</b> — koliko prostora zasedajo podatki in na katerem naslovu je stran odprta.</li>
+</ul>
+<h3>Nasveti za dolgotrajno delovanje</h3>
+<ul>
+<li>Telefon naj bo ves čas na polnilcu.</li>
+<li>V Androidu za Chrome izklopi optimizacijo baterije.</li>
+<li>Uporabi »Temni«: manjša poraba in segrevanje, zaslon ostane prižgan.</li>
+<li>Program odpiraj vedno na istem naslovu, sicer ne najde shranjenih podatkov.</li>
+</ul>`],
+
+led: ["Pomoč — simulator LED (drugi telefon)", `
+<h3>Namen</h3>
+<p>Za preizkus brez pravega števca. Drugi telefon s celim zaslonom utripa kot LED na števcu, prvi telefon ga snema s kamero in meri, kot bi meril pravi števec.</p>
+<h3>Uporaba</h3>
+<ol>
+<li>Na drugem telefonu odpri isti program in tapni <b>Odpri simulator LED</b>. Zaslon postane črn z utripajočo piko.</li>
+<li>Na obeh telefonih nastavi <b>enako število impulzov na kWh</b>, sicer se moči ne ujemata.</li>
+<li>Prvi telefon postavi 10–20 cm pred piko, vir »Kamera«, tapni Zaženi. LED najde sam.</li>
+<li>Med delovanjem premikaj drsnik hitrosti in na prvem telefonu opazuj, kako se spreminja moč.</li>
+<li>Primerjaj število oddanih impulzov na simulatorju s preštetimi na prvem telefonu.</li>
+</ol>
+<h3>Nastavitve</h3>
+<ul>
+<li><b>Hitrost utripanja</b> — moč od 10 W do 20 kW (drsnik je logaritemski). Ob njem piše moč, čas med utripi Δt in število utripov na minuto.</li>
+<li><b>Način</b> — <b>Stalna moč</b> ali <b>Spremenljiva</b>: nihanje okrog nastavljene moči in naključni dodatni porabniki (v povprečju eden na 90 s, trajajo 8–48 s).</li>
+<li><b>Utrip</b> — 10 % časa je pika prižgana, 90 % ugasnjena, glede na hitrost. Utrip traja najmanj 40 ms (krajšega kamera zgreši) in največ 1,2 s (daljšega sprejemnik šteje kot spremembo svetlobe v prostoru).</li>
+<li><b>Barva</b> — rdeča, bela, zelena, modra, rumena. Rdeča je najbližje pravemu števcu.</li>
+<li><b>Velikost pike</b> — 5–90 % zaslona.</li>
+</ul>
+<h3>Zaslon simulatorja</h3>
+<ul>
+<li>Na sredini trenutna moč, število oddanih impulzov in kWh.</li>
+<li>Spodaj: drsnik hitrosti, barva, velikost, preklop načina, <b>Ponastavi</b> (števec oddanih impulzov na nič) in <b>Izhod</b>.</li>
+<li>Zaslon med simulacijo ostane prižgan.</li>
+</ul>
+<p>Nasvet: na drugem telefonu nastavi svetlost zaslona na največ in izklopi samodejno svetlost.</p>`],
+
+podatki: ["Pomoč — podatki", `
+<h3>Izvoz</h3>
+<ul>
+<li><b>CSV minute</b> — za vsako minuto zadnjih 8 dni: čas, Wh, najmanjša in največja moč. Ločilo je podpičje, decimalna vejica (za Excel v slovenskih nastavitvah).</li>
+<li><b>CSV dnevi</b> — za vsak dan: VT kWh, MT kWh, skupaj, strošek.</li>
+<li><b>Varnostna kopija</b> — vsi podatki in nastavitve v eni datoteki .json.</li>
+</ul>
+<p>Datoteka se prenese v mapo Prenosi. Hkrati se vsebina kopira v odložišče, tako da jo lahko prilepiš drugam, če brskalnik prenos zavrne.</p>
+<h3>Uvoz varnostne kopije</h3>
+<p>Izberi datoteko .json, ki si jo prej izvozil. Podatki in nastavitve se zamenjajo z vsebino kopije. Uporabno za prenos na drug telefon ali na drug naslov.</p>
+<h3>Demo podatki (30 dni)</h3>
+<p>Ustvari izmišljeno porabo za zadnjih 30 dni, da vidiš, kako izgledajo grafi. <b>Prepiše obstoječo zgodovino</b>, zato je treba tapniti dvakrat. Ne uporabljaj, ko že meriš zares.</p>
+<h3>Pobriši vse</h3>
+<p>Izbriše vso zgodovino porabe in števec impulzov. Nastavitve ostanejo. Za potrditev tapni dvakrat v 4 sekundah. Brisanja ni mogoče razveljaviti; prej naredi varnostno kopijo.</p>
+<h3>Dnevnik</h3>
+<p>Zadnji dogodki programa: zagon, iskanje LED, prilagoditve osvetlitve in filtra, izpadi kamere, shranjevanje. Uporabno pri iskanju težav.</p>
+<p>Pod gumbi piše, koliko minut, ur in dni je shranjenih.</p>`]
+};
+function helpOpen(k) {
+  const h = HELP[k] || HELP.splosno;
+  $("helpT").textContent = h[0]; $("helpB").innerHTML = h[1]; $("helpB").scrollTop = 0;
+  $("helpOv").classList.add("on");
+}
+function helpClose() { $("helpOv").classList.remove("on"); }
+$("bHelp").onclick = () => helpOpen("splosno");
+$("helpX").onclick = helpClose;
+$("helpOv").addEventListener("click", e => { if (e.target.id === "helpOv") helpClose(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") helpClose(); });
+// gumb ? v vsakem razdelku
+document.querySelectorAll("section.pan[data-help]").forEach(sec => {
+  const b = document.createElement("button"); b.className = "hbtn"; b.textContent = "?"; b.title = "Pomoč"; b.setAttribute("aria-label", "Pomoč");
+  b.onclick = () => helpOpen(sec.dataset.help); sec.appendChild(b);
+});
+
 /* ===================== DOGODKI UI ===================== */
 $("bStart").onclick = () => { S.run ? stop() : start(); };
 $("bTap").onclick = () => onPulse(Date.now());
 $("src").onchange = () => { if (S.run) start(); else { S.src = $("src").value; ui(); save(); } };
 $("camSel").onchange = () => { uiToSet(); save(); if (S.run && S.src === "cam") camRestart(); };
-$("roiSz").oninput = () => { uiToSet(); labels(); placeRoi(); };
+$("roiSz").oninput = () => { uiToSet(); labels(); placeRoi(); saveSoon(); };
 document.querySelectorAll("input,select").forEach(el => { if (el.id && SET_IDS.includes(el.id)) el.addEventListener("change", () => { uiToSet(); labels(); save(); render(); }); });
-["thr", "spRate", "spVol"].forEach(id => $(id).addEventListener("input", () => { uiToSet(); labels(); }));
+["minStep", "spRate", "spVol"].forEach(id => $(id).addEventListener("input", () => { uiToSet(); labels(); saveSoon(); }));
+document.querySelectorAll("input[type=number],input[type=time]").forEach(el => el.addEventListener("input", () => { if (SET_IDS.includes(el.id)) { uiToSet(); saveSoon(); } }));
 $("spVoice").onchange = () => { S.set.spVoice = $("spVoice").value; save(); };
 $("kaWake").onchange = () => { uiToSet(); save(); g("kaWake") && S.run ? wakeOn() : wakeOff(); };
 $("spOn").onchange = () => { uiToSet(); save(); if (g("spOn")) say("Govor vklopljen."); else synth && synth.cancel(); };
@@ -851,14 +1550,27 @@ $("bDim").onclick = dimOn;
 $("bFs").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch (e) {} };
 
 /* ===================== ZAČETEK ===================== */
-load();
+(async () => {
+await load();
+loaded = true;
 if (!S.set.ppk) uiToSet(); // prvi zagon: privzete vrednosti iz HTML
+// prenos nastavitev iz starejših verzij: samodejni barvni filter
+if ((S.set.cfgVer || 0) < 7) { if (S.set.chan && S.set.chan !== "auto") S.set.chan = "auto"; S.set.cfgVer = 7; }
+if (S.live) { // nadaljevanje po ponovnem odprtju strani
+  const L = S.live; (L.buf || []).forEach(x => { if (x.t > Date.now() - 3600000) secBuf.push(x); });
+  if (L.lastPulse && Date.now() - L.lastPulse < 600000) { lastPulse = L.lastPulse; lastDt = L.lastDt || 0; curP = L.curP; dts = L.dts || []; }
+  if (L.dayMaxKey === dayKey(Date.now())) { dayMax = L.dayMax; dayMaxKey = L.dayMaxKey; }
+}
 setToUI(); uiToSet(); labels(); buildRules(); placeRoi();
+applyTheme(S.set.theme || "kobalt");
 graphTab = S.set.gTab || "m15";
 ui(); render(); drawGraph();
 setInterval(secondTick, 1000);
-if (S.run && g("kaAuto")) { logm("Samodejni zagon."); S.run = false; start(); } else S.run = false;
+if (S.run && g("kaAuto")) { logm("Samodejni zagon."); S.run = false; start(true); } else S.run = false;
+["verTop", "verLed", "verDim"].forEach(id => $(id).textContent = VER); // ena oznaka verzije za vse prikaze
 logm("Števec elektrike " + VER + " pripravljen.");
+setInterval(storeEst, 60000);
+})();
 }
 </script>
 </body>
