@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0d18">
-<title>Števec elektrike SEV13B</title>
-<!-- Števec elektrike SEV13B — LED impulzi s kamero, grafi, govor, stalno delovanje -->
+<title>Števec elektrike SEV14B</title>
+<!-- Števec elektrike SEV14B — LED impulzi s kamero, grafi, govor, stalno delovanje -->
 <style>
 :root{--bg:#0a0d18;--pan:#121829;--pan2:#18203a;--ink:#e8ecf8;--dim:#8a94b4;--line:#263055;--acc:#3d6bff;--acc2:#1240e0;--hot:#ff5a3c;--ok:#2fd18a;--warn:#ffb020;--mt:#6e8cff;--vt:#ff8a3c;--field:#0d1222;--hl:#9fb4ff;--topink:#ffffff;--wbg:#3a2a08;--wbd:#6a4a10;--wink:#ffd890;--redb:#5a1a12;--redbd:#8a2a1a;--onacc:#ffffff}
 *{box-sizing:border-box;min-width:0}
@@ -111,7 +111,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 <body>
 <div class="top">
   <span class="dot" id="stDot"></span>
-  <h1>Števec elektrike</h1><span class="ver" id="verTop">SEV13B</span>
+  <h1>Števec elektrike</h1><span class="ver" id="verTop">SEV14B</span>
   <span class="sp"></span>
   <button id="bHelp" title="Pomoč">Pomoč</button>
   <button id="bDim" title="Temni zaslon">Temni</button>
@@ -281,6 +281,29 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
   <div class="warnbox" id="bgWarn">Stran je bila v ozadju. Brskalnik v ozadju ustavi kamero, zato so bili impulzi v tem času lahko izpuščeni. Za stalno delovanje pusti stran odprto spredaj (uporabi »Temni«).</div>
 </section>
 
+<!-- OBVESTILA NA TELEFON (ntfy) -->
+<section class="pan" data-help="ntfy">
+  <h2>Obvestila na drug telefon (ntfy)</h2>
+  <label class="chk"><input type="checkbox" id="ntOn"> Pošiljaj obvestila prek ntfy</label>
+  <div class="k" style="margin:6px 0">
+    <span>Tvoj ključ (10 števk)</span>
+    <b id="ntKeyL" style="font-size:26px;letter-spacing:1px">–</b>
+    <span>Tema v aplikaciji ntfy: <b id="ntTopic" style="display:inline;font-size:14px">–</b></span>
+  </div>
+  <div class="row"><button id="ntCopy">Kopiraj temo</button><button id="ntTest">Pošlji preizkus</button><button id="ntNew">Nov ključ</button></div>
+  <h2 style="margin-top:12px">Kaj pošlje</h2>
+  <label class="chk"><input type="checkbox" id="ntAlarm" checked> Alarmi za vodo (neprekinjen pretok, puščanje)</label>
+  <label class="chk"><input type="checkbox" id="ntBlk" checked> Napoved preseganja obračunske moči</label>
+  <label class="chk"><input type="checkbox" id="ntNone" checked> Ni impulzov ali kamera ne dela</label>
+  <label class="chk"><input type="checkbox" id="ntHi"> Opozorilo nad mejo moči / pretoka</label>
+  <label class="chk"><input type="checkbox" id="ntDay"> Dnevni povzetek ob uri</label>
+  <div class="f">
+    <div><label>Ura povzetka</label><input type="time" id="ntHour" value="20:00"></div>
+    <div><label>Strežnik</label><input type="text" id="ntSrv" value="https://ntfy.sh"></div>
+  </div>
+  <div class="sub" id="ntSt" style="margin-top:6px"></div>
+</section>
+
 <!-- SIMULATOR LED -->
 <section class="pan" data-help="led">
   <h2>Simulator LED (drugi telefon)</h2>
@@ -316,6 +339,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
   <h2>Zgodovina verzij</h2>
   <details><summary>Pokaži zgodovino sprememb</summary>
   <ul class="hist">
+    <li><b>SEV14B</b> — obvestila na drug telefon prek ntfy: 10-mestni naključni ključ (tema sev + ključ), kopiranje teme, preizkus, nov ključ; pošiljanje alarmov za vodo, napovedi preseganja obračunske moči, izpada impulzov ali kamere, opozorila nad mejo in dnevnega povzetka; omejitev pošiljanja; pomoč za ntfy.</li>
     <li><b>SEV13B</b> — pomoč ob izbiri plina ali vode (težave in rešitve); pomoč ob prvem zagonu; obračunska moč: trenutni časovni blok, napoved 15-minutne moči, opozorilo pred preseganjem dogovorjene moči, najvišja 15-min moč meseca po blokih, barvanje grafov po časovnih blokih z oznako dogovorjene moči; lučka telefona (ločeno za elektriko, plin in vodo); shranjevanje vseh novih nastavitev; zgodovina verzij in seznam predlogov.</li>
     <li><b>SEV12B</b> — vrsta merjenja elektrika / plin / voda z ločenimi nastavitvami in zgodovino; enote v vseh prikazih, grafih in govoru; alarma za vodo: neprekinjen pretok in stalna poraba (puščanje).</li>
     <li><b>SEV11B</b> — dinamično zaznavanje: nizek in visok nivo, prag kot najmanjša sprememba, povprečje treh zaporednih slik, izravnava osvetlitve kamere; neprekinjena modra črta v grafu, povprečje pod njo.</li>
@@ -334,7 +358,6 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
   <h2 style="margin-top:12px">Neizvedeni predlogi</h2>
   <ul class="hist">
     <li><b>Umerjanje s pravim števcem</b> — izračun odstopanja iz dejanskega odčitka in predlog popravka (izpuščeno).</li>
-    <li><b>Alarm na drug telefon</b> — obvestilo prek ntfy.sh, npr. pri puščanju vode, ko nisi doma.</li>
     <li><b>Izmeri napravo</b> — izmerjena razlika moči ob vklopu, shranjena pod imenom naprave.</li>
     <li><b>Povzetek dneva ali tedna</b> na glas ob nastavljeni uri.</li>
     <li><b>Uvoz 15-minutnih podatkov iz Moj elektro (CSV)</b> za primerjavo.</li>
@@ -344,7 +367,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 </div>
 
 <div id="ledOv">
-  <div class="vtag" id="verLed">SEV13B</div>
+  <div class="vtag" id="verLed">SEV14B</div>
   <div id="ledDot"></div>
   <div id="ledInfo"><span id="ledNow">–</span><span id="ledCnt">0 imp · 0,000 kWh</span></div>
   <div id="ledCtl">
@@ -359,14 +382,14 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 </div>
 <div id="alarm"><b id="alarmT"></b><button id="alarmOk">Potrdi</button></div>
 <div id="helpOv"><div id="helpBox"><div id="helpHead"><h2 id="helpT">Pomoč</h2><button id="helpX">Zapri</button></div><div id="helpB"></div><div id="helpFoot"><label class="chk"><input type="checkbox" id="helpNo"> Ne prikaži več samodejno</label></div></div></div>
-<div id="dim"><div class="vtag" id="verDim">SEV13B</div><div class="sub">tapni za izhod</div><div class="big" id="dimP">--</div><div id="dimS" style="margin-top:10px"></div></div>
+<div id="dim"><div class="vtag" id="verDim">SEV14B</div><div class="sub">tapni za izhod</div><div class="big" id="dimP">--</div><div id="dimS" style="margin-top:10px"></div></div>
 <video id="nosleep" playsinline muted loop style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;left:0"></video>
 <canvas id="smp" width="32" height="32" style="display:none"></canvas>
 
 <script>
 {
 "use strict";
-const VER = "SEV13B";
+const VER = "SEV14B";
 const $ = id => document.getElementById(id);
 const KEY = "stevec_elektrike";
 
@@ -467,7 +490,7 @@ function prune() {
 /* ===================== NASTAVITVE ↔ UI ===================== */
 const SET_IDS = ["ppk", "gap", "avgN", "meter0", "pVT", "pMT", "mtFrom", "mtTo", "mtWe", "minStep", "chan", "camSel", "roiSz",
   "spOn", "spRate", "spVol", "spStyle", "evHi", "evJump", "evNone", "evDay", "evHiOn", "evJumpOn", "evNoneOn", "evDayOn", "evNewMax", "qFrom", "qTo", "qOn",
-  "kaWake", "kaAuto", "kaRestart", "kaDimAuto", "gMode", "wFlowOn", "wFlowL", "wLeakOn", "wLeakLh", "wLeakH", "wSound", "dm1", "dm2", "dm3", "dm4", "dm5", "bmWarn", "gCol", "torch", "ledP", "ledMode", "ledCol", "ledSz"];
+  "kaWake", "kaAuto", "kaRestart", "kaDimAuto", "gMode", "wFlowOn", "wFlowL", "wLeakOn", "wLeakLh", "wLeakH", "wSound", "dm1", "dm2", "dm3", "dm4", "dm5", "bmWarn", "gCol", "torch", "ntOn", "ntAlarm", "ntBlk", "ntNone", "ntHi", "ntDay", "ntHour", "ntSrv", "ledP", "ledMode", "ledCol", "ledSz"];
 function setToUI() {
   SET_IDS.forEach(id => { const el = $(id); if (!el || !(id in S.set)) return; if (el.type === "checkbox") el.checked = !!S.set[id]; else el.value = S.set[id]; });
   $("src").value = S.src;
@@ -593,6 +616,7 @@ function beep() {
   } catch (e) {}
 }
 function raiseAlarm(txt) {
+  if (g("ntAlarm")) ntSend(txt, 5, "warning,droplet", "alarm" + txt.slice(7, 20));
   $("alarmT").textContent = txt; $("alarm").classList.add("on"); logm(txt);
   const o = S.set.spOn; S.set.spOn = true; say(txt, true); S.set.spOn = o; // alarm se pove tudi, če je govor izklopljen
   clearInterval(alarmBeepT);
@@ -657,6 +681,7 @@ function blockTick(t) {
     qWarned = Q.q;
     say(`Pozor. V bloku ${Q.b} bo 15-minutna moč ${fmt(Q.proj, 1)} kilovata, dogovorjena je ${fmt(dm, 1)}.`, true);
     logm(`Napoved preseganja obračunske moči: blok ${Q.b}, ${fmt(Q.proj, 2)} kW > ${fmt(dm, 1)} kW.`);
+    if (g("ntBlk")) ntSend(`Blok ${Q.b}: napoved 15-min moči ${fmt(Q.proj, 2)} kW, dogovorjena ${fmt(dm, 1)} kW. Izklopi večjega porabnika.`, 4, "warning,zap", "blk");
   }
 }
 function blkTable() {
@@ -676,6 +701,67 @@ async function applyTorch(quiet) {
   try { await track.applyConstraints({advanced: [{torch: !!g("torch")}]}); $("torchSt").textContent = g("torch") ? "prižgana" : ""; }
   catch (e) { $("torchSt").textContent = "napaka"; logm("Lučka: " + e.message); }
 }
+
+/* ===================== OBVESTILA NA DRUG TELEFON (ntfy) ===================== */
+// Tema = "sev" + 10-mestni naključni ključ. Brez registracije: ključ je hkrati geslo, zato ga ne deli.
+function ntNewKey() { const a = new Uint32Array(10); crypto.getRandomValues(a); return Array.from(a, x => x % 10).join(""); }
+const ntTopic = () => "sev" + (S.set.ntKey || "");
+let ntLast = {}, ntDayCnt = 0, ntDayKey = "", ntNoneSent = 0, ntDaySent = "";
+async function ntSend(msg, prio, tag, kind, force) {
+  if (!force && !g("ntOn")) return false;
+  const t = Date.now(), dk = dayKey(t);
+  if (dk !== ntDayKey) { ntDayKey = dk; ntDayCnt = 0; }
+  if (!force) {
+    if (ntLast[kind] && t - ntLast[kind] < 10 * 60000) return false; // ista vrsta največ enkrat na 10 min
+    if (ntDayCnt >= 60) return false;                                 // največ 60 na dan
+  }
+  ntLast[kind] = t; ntDayCnt++;
+  const srv = (g("ntSrv") || "https://ntfy.sh").replace(/\/+$/, "");
+  const title = MED[med()].title + " " + VER;
+  // naslov, prioriteta in oznake gredo v URL (glave HTTP ne dovolijo šumnikov)
+  const url = `${srv}/${ntTopic()}?title=${encodeURIComponent(title)}&priority=${prio || 3}&tags=${encodeURIComponent(tag || "zap")}`;
+  try {
+    const r = await fetch(url, {method: "POST", body: msg});
+    $("ntSt").textContent = (r.ok ? "Poslano " : "Napaka " + r.status + " ") + hm(t) + ": " + msg;
+    logm("ntfy " + (r.ok ? "poslano" : "napaka " + r.status) + ": " + msg);
+    return r.ok;
+  } catch (e) {
+    $("ntSt").textContent = "Ni povezave z " + srv + " (" + hm(t) + ").";
+    logm("ntfy: ni povezave — " + e.message); return false;
+  }
+}
+function ntShow() {
+  const k = S.set.ntKey || "";
+  $("ntKeyL").textContent = k ? k.replace(/(\d{4})(\d{3})(\d{3})/, "$1 $2 $3") : "–";
+  $("ntTopic").textContent = ntTopic();
+}
+function ntTick(t) {
+  if (!g("ntOn")) return;
+  // ni impulzov ali kamera ne pošilja slike
+  if (g("ntNone") && S.run) {
+    const lim = Math.max(1, +g("evNone") || 15) * 60000;
+    if (lastPulse && t - lastPulse > lim && ntNoneSent !== lastPulse) { ntNoneSent = lastPulse; ntSend(`Že ${Math.round((t - lastPulse) / 60000)} minut ni impulzov. Preveri kamero in telefon.`, 4, "warning", "none"); }
+    if (S.src === "cam" && stream && t - lastFrame > 60000) ntSend("Kamera že več kot minuto ne pošilja slike.", 4, "warning,camera", "cam");
+  }
+  // dnevni povzetek
+  if (g("ntDay")) {
+    const n = new Date(t), hhmm = pad(n.getHours()) + ":" + pad(n.getMinutes()), dk = dayKey(t);
+    if (hhmm === (g("ntHour") || "20:00") && ntDaySent !== dk) {
+      ntDaySent = dk;
+      const pr = projMonth();
+      ntSend(`Danes: ${fmtE(dayWh(dk), 2)}, ${fmt(dayCost(dk), 2)} €. Ta mesec: ${pr ? fmtE(pr.now * 1000, 1) + ", " + fmt(pr.nowC, 2) + " €" : "–"}.`, 2, "bar_chart", "day", true);
+    }
+  }
+}
+$("ntCopy").onclick = () => { try { navigator.clipboard.writeText(ntTopic()); $("ntSt").textContent = "Tema " + ntTopic() + " je kopirana."; } catch (e) {} };
+$("ntTest").onclick = () => ntSend("Preizkus: obvestila delujejo. Trenutno " + fmtP(powerNow() || 0) + ".", 3, "white_check_mark", "test", true);
+let ntNewArm = 0;
+$("ntNew").onclick = () => {
+  if (Date.now() - ntNewArm > 4000) { ntNewArm = Date.now(); $("ntNew").textContent = "Tapni še enkrat"; setTimeout(() => $("ntNew").textContent = "Nov ključ", 4000); return; }
+  S.set.ntKey = ntNewKey(); save(); ntShow(); $("ntNew").textContent = "Nov ključ";
+  $("ntSt").textContent = "Nov ključ. Na drugem telefonu se naroči na novo temo " + ntTopic() + ".";
+};
+$("ntOn").addEventListener("change", e => { uiToSet(); if (e.target.checked && !S.set.ntKey) S.set.ntKey = ntNewKey(); save(); ntShow(); });
 
 /* ===================== IMPULZI IN MOČ ===================== */
 let lastPulse = 0, lastDt = 0, dts = [], curP = null;
@@ -726,6 +812,7 @@ function secondTick() {
   speakRules(t);
   leakCheck(t);
   blockTick(t);
+  ntTick(t);
   render();
   keepAliveTick(t);
   if (t - lastSave > 15000) save();
@@ -737,7 +824,7 @@ let hiActive = false, jumpRef = null, jumpCnt = 0, noneWarned = 0, dayWarned = "
 function events(p, t) {
   const loud = !quiet();
   const W = MED[med()].word, pd = toDispP(p);
-  if (g("evHiOn") && pd > +g("evHi") && !hiActive) { hiActive = true; say(`Opozorilo. ${W} ${sayP(p)}, nad mejo.`, true); }
+  if (g("evHiOn") && pd > +g("evHi") && !hiActive) { hiActive = true; say(`Opozorilo. ${W} ${sayP(p)}, nad mejo.`, true); if (g("ntHi")) ntSend(`${W} ${fmtP(p)}, nad mejo ${fmt(+g("evHi"), 1)}.`, 4, "warning", "hi"); }
   if (hiActive && pd < +g("evHi") * 0.9) hiActive = false;
   if (g("evJumpOn") && loud) {
     if (jumpRef == null) jumpRef = p;
@@ -1542,6 +1629,7 @@ splosno: ["Pomoč — splošno", `
 <li><b>Govor</b> — glasovna obvestila v rednih intervalih in ob dogodkih.</li>
 <li><b>Nastavitve števca</b> — impulzi na kWh, stanje števca, cene.</li>
 <li><b>Stalno delovanje</b> — prižgan zaslon, samodejni zagon, stanje shrambe.</li>
+<li><b>Obvestila na drug telefon (ntfy)</b> — alarmi in povzetki na tvoj telefon, kjerkoli si.</li>
 <li><b>Simulator LED</b> — drugi telefon utripa kot števec, za preizkus.</li>
 <li><b>Podatki</b> — izvoz, varnostna kopija, uvoz, brisanje.</li>
 <li><b>Zgodovina verzij</b> na dnu strani — spremembe po verzijah in seznam še neizvedenih predlogov.</li>
@@ -1587,6 +1675,40 @@ plinvoda: ["Pomoč — plin in voda (test)", `
 <li><b>Mraz</b> — v jašku pozimi telefon hitro izgubi baterijo; uporabi polnilec in telefon zaščiti.</li>
 </ul>
 <p>To okno se ob izbiri odpre samodejno. Če ne želiš, da se še odpira, označi »Ne prikaži več samodejno«. Vedno ga najdeš pod gumbom <b>?</b> v razdelku Nastavitve števca.</p>`],
+ntfy: ["Pomoč — obvestila na drug telefon (ntfy)", `
+<p><b>ntfy</b> je brezplačna, odprtokodna storitev za potisna obvestila (ntfy.sh). Števec ob alarmu pošlje sporočilo, ti pa ga takoj dobiš na svoj telefon, kjerkoli si. Registracija ni potrebna.</p>
+<h3>Nastavitev v 4 korakih</h3>
+<ol>
+<li>Na telefonu, na katerem želiš prejemati obvestila, namesti aplikacijo <b>ntfy</b> (Google Play ali App Store).</li>
+<li>Na telefonu pred števcem vklopi <b>Pošiljaj obvestila prek ntfy</b>. Program izračuna naključni <b>10-mestni ključ</b>, tema je <b>sev</b> + ključ (npr. sev4829105637).</li>
+<li>V aplikaciji ntfy tapni <b>+</b> (Subscribe to topic) in vpiši temo točno tako, kot je izpisana (gumb <b>Kopiraj temo</b>). Strežnik pusti privzet (ntfy.sh).</li>
+<li>Tapni <b>Pošlji preizkus</b>. V nekaj sekundah mora priti obvestilo »Preizkus: obvestila delujejo«.</li>
+</ol>
+<h3>Ključ</h3>
+<ul>
+<li>Ključ se izračuna naključno enkrat, ob prvem vklopu, in se zapomni. Isti ključ ostane, dokler ne tapneš <b>Nov ključ</b> (dvakrat, za potrditev).</li>
+<li>Ker ni registracije, je ključ hkrati <b>geslo</b>: kdor pozna temo, lahko bere tvoja obvestila. Ne objavljaj ga. Če ga je kdo izvedel, naredi nov ključ in se na drugem telefonu naroči na novo temo.</li>
+<li>Ključ je skupen za elektriko, plin in vodo; v naslovu obvestila piše, kateri števec ga je poslal.</li>
+</ul>
+<h3>Kaj pošlje</h3>
+<ul>
+<li><b>Alarmi za vodo</b> — neprekinjen pretok in puščanje; najvišja prioriteta (telefon zazvoni tudi v tihem načinu, če to v aplikaciji ntfy dovoliš).</li>
+<li><b>Napoved preseganja obračunske moči</b> — ko 15-minutna napoved preseže dogovorjeno moč bloka.</li>
+<li><b>Ni impulzov ali kamera ne dela</b> — ko toliko minut, kot je nastavljeno pri »Ni impulzov (min)« v razdelku Govor, ni impulza, ali ko kamera več kot minuto ne pošlje slike. Pri vodi in plinu je mirovanje običajno, zato tam to vklopi le, če veš, da poraba teče stalno.</li>
+<li><b>Opozorilo nad mejo</b> — ob preseženi meji moči oziroma pretoka iz razdelka Govor.</li>
+<li><b>Dnevni povzetek</b> — ob nastavljeni uri: današnja poraba, strošek in poraba meseca.</li>
+</ul>
+<p>Ista vrsta obvestila se pošlje največ enkrat na 10 minut, vseh skupaj največ 60 na dan (preizkus in povzetek se ne štejeta v omejitev 10 minut).</p>
+<h3>Strežnik</h3>
+<p>Privzeto je javni brezplačni strežnik https://ntfy.sh, ki nima zagotovljene dostopnosti. Če imaš svoj strežnik ntfy, vpiši njegov naslov; enak naslov nastavi tudi v aplikaciji.</p>
+<h3>Pomembno</h3>
+<ul>
+<li>Obvestila pošilja telefon pred števcem, zato mora imeti <b>internet</b> in program mora biti odprt spredaj (kot za merjenje).</li>
+<li>Ko telefon nima interneta, obvestilo ne pride; pod nastavitvami piše »Ni povezave«.</li>
+<li>Na Androidu deluje zanesljivo. Na iPhonu se obvestila včasih prikažejo šele, ko odpreš aplikacijo ntfy.</li>
+<li>Stran mora teči na https (npr. GitHub). Iz mape Prenosi pošiljanje morda ne deluje.</li>
+</ul>
+<p>Pod nastavitvami je izpisano zadnje poslano obvestilo in ali je bilo uspešno. Vsa poslana obvestila so tudi v Dnevniku.</p>`],
 moc: ["Pomoč — trenutna moč in kazalniki", `
 <h3>Trenutna moč</h3>
 <p>Velika številka je moč, izračunana iz časa med zadnjima utripoma. Desno je <b>Δt impulza</b> (čas med zadnjima utripoma) in vir, ki trenutno deluje.</p>
@@ -1927,6 +2049,8 @@ if (S.live) { // nadaljevanje po ponovnem odprtju strani
 }
 setToUI(); uiToSet(); labels(); buildRules(); placeRoi();
 applyTheme(S.set.theme || "kobalt"); applyMedium(); blkTable();
+if (!S.set.ntKey) { S.set.ntKey = ntNewKey(); save(); } // 10-mestni ključ se izračuna ob prvem zagonu
+ntShow();
 graphTab = S.set.gTab || "m15";
 ui(); render(); drawGraph();
 setInterval(secondTick, 1000);
