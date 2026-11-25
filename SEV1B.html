@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0d18">
-<title>Števec elektrike SEV11B</title>
-<!-- Števec elektrike SEV11B — LED impulzi s kamero, grafi, govor, stalno delovanje -->
+<title>Števec elektrike SEV13B</title>
+<!-- Števec elektrike SEV13B — LED impulzi s kamero, grafi, govor, stalno delovanje -->
 <style>
 :root{--bg:#0a0d18;--pan:#121829;--pan2:#18203a;--ink:#e8ecf8;--dim:#8a94b4;--line:#263055;--acc:#3d6bff;--acc2:#1240e0;--hot:#ff5a3c;--ok:#2fd18a;--warn:#ffb020;--mt:#6e8cff;--vt:#ff8a3c;--field:#0d1222;--hl:#9fb4ff;--topink:#ffffff;--wbg:#3a2a08;--wbd:#6a4a10;--wink:#ffd890;--redb:#5a1a12;--redbd:#8a2a1a;--onacc:#ffffff}
 *{box-sizing:border-box;min-width:0}
@@ -68,6 +68,15 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 #dim{position:fixed;inset:0;background:#000;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;color:#3a4a7a;text-align:center}
 #dim .big{color:#4a5f9e}
 #dim.on{display:flex}
+#helpFoot{border-top:1px solid var(--line);padding:6px 16px}
+.bmt{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}.bmt th,.bmt td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);white-space:nowrap}.bmt th{color:var(--dim);font-weight:600}
+.hist{margin:6px 0;padding-left:20px;font-size:14px;color:var(--dim)}.hist li{margin:5px 0}.hist b{color:var(--ink)}
+#alarm{position:fixed;left:8px;right:8px;top:64px;z-index:65;display:none;gap:10px;align-items:center;background:#c0261a;color:#fff;border-radius:12px;padding:12px 12px 12px 16px;box-shadow:0 6px 24px #0008;font-size:16px}
+#alarm.on{display:flex;animation:al 1s ease-in-out infinite alternate}
+#alarm b{flex:1}
+#alarm button{background:#fff;color:#c0261a;font-weight:800;border:0}
+@keyframes al{from{background:#c0261a}to{background:#e8442a}}
+@media(prefers-reduced-motion:reduce){#alarm.on{animation:none}}
 .pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px}
 .pal button{display:flex;flex-direction:column;align-items:flex-start;gap:7px;text-align:left;padding:9px 10px;font-size:14px;font-weight:600}
 .pal button.on{outline:3px solid var(--hl);outline-offset:1px}
@@ -102,7 +111,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 <body>
 <div class="top">
   <span class="dot" id="stDot"></span>
-  <h1>Števec elektrike</h1><span class="ver" id="verTop">SEV11B</span>
+  <h1>Števec elektrike</h1><span class="ver" id="verTop">SEV13B</span>
   <span class="sp"></span>
   <button id="bHelp" title="Pomoč">Pomoč</button>
   <button id="bDim" title="Temni zaslon">Temni</button>
@@ -115,7 +124,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 <!-- MOČ -->
 <section class="pan" data-help="moc">
   <div class="hero">
-    <div><div class="sub">Trenutna moč</div><div class="big" id="pNow">--<small>W</small></div></div>
+    <div><div class="sub" id="lPNow">Trenutna moč</div><div class="big" id="pNow">--<small>W</small></div></div>
     <div style="text-align:right"><div class="sub">Δt impulza</div><b id="dtNow" style="font-size:20px">-- s</b><div class="sub" id="srcLbl">ustavljeno</div></div>
   </div>
   <div class="kpis">
@@ -123,10 +132,11 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
     <div class="k"><span>Včeraj</span><b id="kYest">–</b><span id="kYestC"></span></div>
     <div class="k"><span>Ta mesec</span><b id="kMonth">–</b><span id="kMonthC"></span></div>
     <div class="k"><span>Napoved meseca</span><b id="kProj">–</b><span id="kProjC"></span></div>
-    <div class="k"><span>Min / max danes</span><b id="kMinMax">–</b><span>W</span></div>
+    <div class="k"><span>Min / max danes</span><b id="kMinMax">–</b><span id="kMMu">W</span></div>
     <div class="k"><span>Osnovna poraba 24 h</span><b id="kBase">–</b><span>najnižje 30-min povp.</span></div>
     <div class="k"><span>Zadnjih 60 s</span><b id="k60">–</b><span id="k60mm">min / max</span></div>
     <div class="k"><span>Stanje števca</span><b id="kMeter">–</b><span id="kPulses">0 imp</span></div>
+    <div class="k"><span id="kBlkL">Blok · 15 min</span><b id="kBlk">–</b><span id="kBlkS"></span></div>
   </div>
 </section>
 
@@ -139,6 +149,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
       <option value="p">Povprečna moč (W)</option>
       <option value="c">Strošek (€)</option>
     </select>
+    <select id="gCol" class="elOnly" style="max-width:150px;flex:0 0 auto"><option value="vtmt">Barve: VT/MT</option><option value="blk">Barve: bloki</option></select>
   </div>
   <div class="tabs" id="gTabs"></div>
   <div class="fig" id="gFig"><canvas id="gCv"></canvas><div class="tip" id="gTip"></div></div>
@@ -167,9 +178,9 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
       <div><label>Velikost okna <span id="roiSzL"></span></label><input type="range" id="roiSz" min="12" max="140" value="50"></div>
       <div><label>Velikost spremembe <span id="minStepL"></span></label><input type="range" id="minStep" min="3" max="80" value="12"></div>
       <div><label>Barvni filter</label><select id="chan"><option value="auto">Samodejno (najboljši kontrast)</option><option value="l">Svetlost</option><option value="r">Rdeča</option><option value="g">Zelena</option><option value="b">Modra</option><option value="ir">Rdeča − modra (rdeč LED)</option></select></div>
-      <div><label>Vrsta števca</label><select id="mtype"><option value="el">Elektrika (LED utrip)</option><option value="mark">Plin / voda – oznaka (test)</option></select></div>
       <div><label>Kamera</label><select id="camSel"><option value="environment">Zadnja</option><option value="user">Sprednja</option></select></div>
       <div style="display:flex;align-items:end"><button id="bFind" style="width:100%">Poišči LED samodejno</button></div>
+      <div style="grid-column:1/-1"><label class="chk"><input type="checkbox" id="torch"> Lučka telefona (stalna osvetlitev števca) <span class="badge" id="torchSt"></span></label></div>
     </div>
     <div class="sub">Prag in osvetlitev nastavlja program sam, ves čas. »Velikost spremembe« je najmanjši skok svetlosti, ki še šteje kot impulz.</div>
     <div class="st" id="camSt" style="margin-top:8px"></div>
@@ -191,10 +202,10 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
   <div class="rules" id="rules"></div>
   <h2 style="margin-top:12px">Dogodki</h2>
   <div class="f">
-    <div><label>Opozorilo nad (W)</label><input type="number" id="evHi" value="3500" min="0"></div>
-    <div><label>Skok moči nad (W)</label><input type="number" id="evJump" value="800" min="0"></div>
+    <div><label id="lEvHi">Opozorilo nad (W)</label><input type="number" id="evHi" value="3500" min="0" step="any"></div>
+    <div><label id="lEvJump">Skok moči nad (W)</label><input type="number" id="evJump" value="800" min="0" step="any"></div>
     <div><label>Ni impulzov (min)</label><input type="number" id="evNone" value="15" min="0"></div>
-    <div><label>Dnevna meja (kWh)</label><input type="number" id="evDay" value="12" min="0" step="0.5"></div>
+    <div><label id="lEvDay">Dnevna meja (kWh)</label><input type="number" id="evDay" value="12" min="0" step="any"></div>
   </div>
   <label class="chk"><input type="checkbox" id="evHiOn" checked> Opozori pri preseženi moči</label>
   <label class="chk"><input type="checkbox" id="evJumpOn" checked> Napovej vklop / izklop porabnika (skok)</label>
@@ -214,19 +225,46 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 <section class="pan" data-help="nastavitve">
   <h2>Nastavitve števca</h2>
   <div class="f">
-    <div><label>Impulzov na kWh</label><input type="number" id="ppk" value="1000" min="1"></div>
+    <div style="grid-column:1/-1"><label>Vrsta merjenja</label><select id="med"><option value="el">Elektrika</option><option value="plin">Plin (test)</option><option value="voda">Voda (test)</option></select></div>
+    <div><label id="lPpk">Impulzov na kWh</label><input type="number" id="ppk" value="1000" min="1"></div>
     <div><label>Najkrajši razmik (ms)</label><input type="number" id="gap" value="60" min="5"></div>
     <div><label>Povprečje čez impulzov</label><input type="number" id="avgN" value="1" min="1" max="20"></div>
-    <div><label>Stanje števca ob zagonu (kWh)</label><input type="number" id="meter0" value="0" step="0.001"></div>
+    <div><label id="lMeter">Stanje števca ob zagonu (kWh)</label><input type="number" id="meter0" value="0" step="0.001"></div>
   </div>
   <h2 style="margin-top:12px">Cena</h2>
   <div class="f">
-    <div><label>VT €/kWh (z DDV)</label><input type="number" id="pVT" value="0.135" step="0.001"></div>
-    <div><label>MT €/kWh (z DDV)</label><input type="number" id="pMT" value="0.095" step="0.001"></div>
-    <div><label>MT od ure</label><input type="number" id="mtFrom" value="22" min="0" max="23"></div>
-    <div><label>MT do ure</label><input type="number" id="mtTo" value="6" min="0" max="23"></div>
+    <div><label id="lPVT">VT €/kWh (z DDV)</label><input type="number" id="pVT" value="0.135" step="0.001"></div>
+    <div class="elOnly"><label>MT €/kWh (z DDV)</label><input type="number" id="pMT" value="0.095" step="0.001"></div>
+    <div class="elOnly"><label>MT od ure</label><input type="number" id="mtFrom" value="22" min="0" max="23"></div>
+    <div class="elOnly"><label>MT do ure</label><input type="number" id="mtTo" value="6" min="0" max="23"></div>
   </div>
-  <label class="chk"><input type="checkbox" id="mtWe" checked> Vikend v celoti MT</label>
+  <label class="chk elOnly"><input type="checkbox" id="mtWe" checked> Vikend v celoti MT</label>
+  <div class="elOnly">
+    <h2 style="margin-top:14px">Obračunska moč (omrežnina)</h2>
+    <div class="sub">Dogovorjeno obračunsko moč za vsak časovni blok najdeš na Moj elektro ali na računu.</div>
+    <div class="f" style="margin-top:6px">
+      <div><label>Blok 1 (kW)</label><input type="number" id="dm1" value="0" min="0" step="0.1"></div>
+      <div><label>Blok 2 (kW)</label><input type="number" id="dm2" value="0" min="0" step="0.1"></div>
+      <div><label>Blok 3 (kW)</label><input type="number" id="dm3" value="0" min="0" step="0.1"></div>
+      <div><label>Blok 4 (kW)</label><input type="number" id="dm4" value="0" min="0" step="0.1"></div>
+      <div><label>Blok 5 (kW)</label><input type="number" id="dm5" value="0" min="0" step="0.1"></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="bmWarn" checked> Opozori, ko napoved 15-min moči preseže dogovorjeno</label>
+    <div class="sub" id="bmNow"></div>
+    <div class="scroll"><table class="bmt" id="bmTab"></table></div>
+  </div>
+  <div id="wAlarm" style="display:none">
+    <h2 style="margin-top:14px">Alarmi za vodo</h2>
+    <label class="chk"><input type="checkbox" id="wFlowOn" checked> Neprekinjen pretok (pipa, cev, počena cev)</label>
+    <div class="f"><div><label>Alarm pri iztočenih (L)</label><input type="number" id="wFlowL" value="500" min="1"></div></div>
+    <label class="chk"><input type="checkbox" id="wLeakOn" checked> Stalna poraba (puščanje pipe, zataknjen kotliček)</label>
+    <div class="f">
+      <div><label>Vsaj litrov na uro</label><input type="number" id="wLeakLh" value="10" min="0.1" step="0.5"></div>
+      <div><label>Ur zapored</label><input type="number" id="wLeakH" value="3" min="1" max="24"></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="wSound" checked> Pisk in vibriranje ob alarmu</label>
+    <div class="sub" id="wSt"></div>
+  </div>
   <h2 style="margin-top:14px">Barvna paleta</h2>
   <div class="pal" id="pal"></div>
   <div class="sub">Cene so primer, vpiši svoje iz računa.</div>
@@ -272,10 +310,41 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 </section>
 
 </div>
+
+<!-- ZGODOVINA VERZIJ IN PREDLOGI -->
+<section class="pan" id="verHist" style="margin-top:12px">
+  <h2>Zgodovina verzij</h2>
+  <details><summary>Pokaži zgodovino sprememb</summary>
+  <ul class="hist">
+    <li><b>SEV13B</b> — pomoč ob izbiri plina ali vode (težave in rešitve); pomoč ob prvem zagonu; obračunska moč: trenutni časovni blok, napoved 15-minutne moči, opozorilo pred preseganjem dogovorjene moči, najvišja 15-min moč meseca po blokih, barvanje grafov po časovnih blokih z oznako dogovorjene moči; lučka telefona (ločeno za elektriko, plin in vodo); shranjevanje vseh novih nastavitev; zgodovina verzij in seznam predlogov.</li>
+    <li><b>SEV12B</b> — vrsta merjenja elektrika / plin / voda z ločenimi nastavitvami in zgodovino; enote v vseh prikazih, grafih in govoru; alarma za vodo: neprekinjen pretok in stalna poraba (puščanje).</li>
+    <li><b>SEV11B</b> — dinamično zaznavanje: nizek in visok nivo, prag kot najmanjša sprememba, povprečje treh zaporednih slik, izravnava osvetlitve kamere; neprekinjena modra črta v grafu, povprečje pod njo.</li>
+    <li><b>SEV10B</b> — 12 barvnih palet.</li>
+    <li><b>SEV9B</b> — gumb Pomoč in gumb ? v vsakem razdelku s podrobnim opisom; ožja glava.</li>
+    <li><b>SEV8B</b> — izpis verzije v glavi, simulatorju LED, temnem zaslonu in stanju.</li>
+    <li><b>SEV7B</b> — pregled programa: shranjevanje šele po nalaganju, nadaljevanje po ponovnem odprtju, prenos barvnega filtra iz starejših verzij, simulator LED po premoru, naključni porabniki v simulatorju, ustavitev ne ugasne zaslona simulatorja, gumb iskanja LED; brez izpisa stanja zaslona v simulatorju.</li>
+    <li><b>SEV6B</b> — simulator LED brez celozaslonskega načina; zaslon ostane prižgan (Wake Lock ali rezervni video).</li>
+    <li><b>SEV5B</b> — utrip simulatorja 10 % prižgano / 90 % ugasnjeno; izbira barve in velikosti pike na zaslonu simulatorja.</li>
+    <li><b>SEV4B</b> — simulator LED za drugi telefon z drsnikom hitrosti.</li>
+    <li><b>SEV3B</b> — samodejni prag, osvetlitev kamere, barvni filter in iskanje LED; nastavitev velikosti spremembe.</li>
+    <li><b>SEV2B</b> — shranjevanje v Chrome (localStorage in IndexedDB), trajna shramba, nadaljevanje po ponovnem odprtju.</li>
+    <li><b>SEV1B</b> — prva verzija: impulzi LED s kamero, grafi, govor, stalno delovanje, cene VT/MT, izvoz, simulator, demo podatki.</li>
+  </ul>
+  </details>
+  <h2 style="margin-top:12px">Neizvedeni predlogi</h2>
+  <ul class="hist">
+    <li><b>Umerjanje s pravim števcem</b> — izračun odstopanja iz dejanskega odčitka in predlog popravka (izpuščeno).</li>
+    <li><b>Alarm na drug telefon</b> — obvestilo prek ntfy.sh, npr. pri puščanju vode, ko nisi doma.</li>
+    <li><b>Izmeri napravo</b> — izmerjena razlika moči ob vklopu, shranjena pod imenom naprave.</li>
+    <li><b>Povzetek dneva ali tedna</b> na glas ob nastavljeni uri.</li>
+    <li><b>Uvoz 15-minutnih podatkov iz Moj elektro (CSV)</b> za primerjavo.</li>
+    <li><b>ESP32 kot vir impulzov</b> — fototranzistor in WebSocket, delovanje 24/7 brez telefona pred števcem.</li>
+  </ul>
+</section>
 </div>
 
 <div id="ledOv">
-  <div class="vtag" id="verLed">SEV11B</div>
+  <div class="vtag" id="verLed">SEV13B</div>
   <div id="ledDot"></div>
   <div id="ledInfo"><span id="ledNow">–</span><span id="ledCnt">0 imp · 0,000 kWh</span></div>
   <div id="ledCtl">
@@ -288,15 +357,16 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
     <div class="row"><button id="ledMode2">Stalna moč</button><button id="ledReset">Ponastavi</button><button id="ledExit">Izhod</button></div>
   </div>
 </div>
-<div id="helpOv"><div id="helpBox"><div id="helpHead"><h2 id="helpT">Pomoč</h2><button id="helpX">Zapri</button></div><div id="helpB"></div></div></div>
-<div id="dim"><div class="vtag" id="verDim">SEV11B</div><div class="sub">tapni za izhod</div><div class="big" id="dimP">--</div><div id="dimS" style="margin-top:10px"></div></div>
+<div id="alarm"><b id="alarmT"></b><button id="alarmOk">Potrdi</button></div>
+<div id="helpOv"><div id="helpBox"><div id="helpHead"><h2 id="helpT">Pomoč</h2><button id="helpX">Zapri</button></div><div id="helpB"></div><div id="helpFoot"><label class="chk"><input type="checkbox" id="helpNo"> Ne prikaži več samodejno</label></div></div></div>
+<div id="dim"><div class="vtag" id="verDim">SEV13B</div><div class="sub">tapni za izhod</div><div class="big" id="dimP">--</div><div id="dimS" style="margin-top:10px"></div></div>
 <video id="nosleep" playsinline muted loop style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;left:0"></video>
 <canvas id="smp" width="32" height="32" style="display:none"></canvas>
 
 <script>
 {
 "use strict";
-const VER = "SEV11B";
+const VER = "SEV13B";
 const $ = id => document.getElementById(id);
 const KEY = "stevec_elektrike";
 
@@ -391,12 +461,13 @@ function prune() {
   const mLim = minIdx(Date.now()) - 8 * 1440, hLim = hourIdx(Date.now()) - 800 * 24;
   for (const k in S.minutes) if (+k < mLim) delete S.minutes[k];
   for (const k in S.hours) if (+k < hLim) delete S.hours[k];
+  for (const m in (S.hist || {})) { const h = S.hist[m]; for (const k in h.minutes) if (+k < mLim) delete h.minutes[k]; }
 }
 
 /* ===================== NASTAVITVE ↔ UI ===================== */
-const SET_IDS = ["ppk", "gap", "avgN", "meter0", "pVT", "pMT", "mtFrom", "mtTo", "mtWe", "minStep", "mtype", "chan", "camSel", "roiSz",
+const SET_IDS = ["ppk", "gap", "avgN", "meter0", "pVT", "pMT", "mtFrom", "mtTo", "mtWe", "minStep", "chan", "camSel", "roiSz",
   "spOn", "spRate", "spVol", "spStyle", "evHi", "evJump", "evNone", "evDay", "evHiOn", "evJumpOn", "evNoneOn", "evDayOn", "evNewMax", "qFrom", "qTo", "qOn",
-  "kaWake", "kaAuto", "kaRestart", "kaDimAuto", "gMode", "ledP", "ledMode", "ledCol", "ledSz"];
+  "kaWake", "kaAuto", "kaRestart", "kaDimAuto", "gMode", "wFlowOn", "wFlowL", "wLeakOn", "wLeakLh", "wLeakH", "wSound", "dm1", "dm2", "dm3", "dm4", "dm5", "bmWarn", "gCol", "torch", "ledP", "ledMode", "ledCol", "ledSz"];
 function setToUI() {
   SET_IDS.forEach(id => { const el = $(id); if (!el || !(id in S.set)) return; if (el.type === "checkbox") el.checked = !!S.set[id]; else el.value = S.set[id]; });
   $("src").value = S.src;
@@ -414,6 +485,7 @@ function labels() {
 
 /* ===================== TARIFA ===================== */
 function isMT(t) {
+  if (med() !== "el") return false; // plin in voda: ena cena
   const d = new Date(t), h = d.getHours(), wd = d.getDay();
   if (g("mtWe") && (wd === 0 || wd === 6)) return true;
   const a = +g("mtFrom"), b = +g("mtTo");
@@ -423,6 +495,187 @@ const price = t => isMT(t) ? +g("pMT") : +g("pVT");
 const dayWh = k => { const d = S.days[k]; return d ? d[0] + d[1] : 0; };
 const dayCost = k => { const d = S.days[k]; return d ? (d[0] * g("pVT") + d[1] * g("pMT")) / 1000 : 0; };
 const whpp = () => 1000 / Math.max(1, +g("ppk"));
+
+/* ===================== VRSTA MERJENJA: ELEKTRIKA / PLIN / VODA ===================== */
+// Notranja enota je za vse enaka: 1 impulz = 1000 / (imp na enoto) → Wh pri elektriki, litri pri plinu in vodi.
+// »Moč« je tako W pri elektriki in L/h pri plinu in vodi.
+const med = () => S.set.med || "el";
+const MED = {
+  el:   {title: "Števec elektrike", imp: "Impulzov na kWh", meter: "Stanje števca ob zagonu (kWh)", price: "VT €/kWh (z DDV)", hi: "Opozorilo nad (W)", jump: "Skok moči nad (W)", day: "Dnevna meja (kWh)", pnow: "Trenutna moč", ge: "Energija (kWh)", gp: "Povprečna moč (W)", word: "Moč"},
+  plin: {title: "Števec plina",     imp: "Impulzov na m³",  meter: "Stanje števca ob zagonu (m³)",  price: "Cena €/m³ (z DDV)", hi: "Opozorilo nad (m³/h)", jump: "Skok pretoka nad (m³/h)", day: "Dnevna meja (m³)", pnow: "Trenutni pretok", ge: "Poraba (m³)", gp: "Povprečni pretok (m³/h)", word: "Pretok"},
+  voda: {title: "Števec vode",      imp: "Impulzov na m³",  meter: "Stanje števca ob zagonu (m³)",  price: "Cena €/m³ (z DDV)", hi: "Opozorilo nad (L/min)", jump: "Skok pretoka nad (L/min)", day: "Dnevna meja (L)", pnow: "Trenutni pretok", ge: "Poraba (L)", gp: "Povprečni pretok (L/min)", word: "Pretok"}
+};
+// nastavitve, ki jih ima vsaka vrsta svoje (ob preklopu se shranijo in naložijo)
+const MED_KEYS = ["ppk", "gap", "meter0", "pVT", "pMT", "evHi", "evJump", "evDay", "evNoneOn", "evJumpOn", "evNewMax", "torch", "minStep", "roiSz", "chan"];
+const MED_DEF = {
+  el:   {ppk: 1000, gap: 60,  meter0: 0, pVT: 0.135, pMT: 0.095, evHi: 3500, evJump: 800, evDay: 12,  evNoneOn: true,  evJumpOn: true, evNewMax: false, torch: false, minStep: 12, roiSz: 50, chan: "auto"},
+  plin: {ppk: 100,  gap: 200, meter0: 0, pVT: 0.85,  pMT: 0.85,  evHi: 3,    evJump: 0.5, evDay: 8,   evNoneOn: false, evJumpOn: true, evNewMax: false, torch: true, minStep: 20, roiSz: 40, chan: "l"},
+  voda: {ppk: 1000, gap: 200, meter0: 0, pVT: 2.5,   pMT: 2.5,   evHi: 25,   evJump: 4,   evDay: 600, evNoneOn: false, evJumpOn: true, evNewMax: false, torch: true, minStep: 20, roiSz: 40, chan: "l"}
+};
+// prikaz
+function pParts(v) {
+  const m = med();
+  if (m === "el") return v >= 1000 ? [fmt(v / 1000, 2), "kW"] : [fmt(v, v < 100 ? 1 : 0), "W"];
+  if (m === "plin") return v >= 1000 ? [fmt(v / 1000, 2), "m³/h"] : [fmt(v, 0), "L/h"];
+  const lm = v / 60; return [fmt(lm, lm < 10 ? 1 : 0), "L/min"];
+}
+const fmtP = v => v == null || !isFinite(v) ? "–" : pParts(v).join(" ");
+function fmtE(x, d) { // x = notranja enota (Wh ali L)
+  const m = med();
+  if (m === "el") return fmt(x / 1000, d == null ? 3 : d) + " kWh";
+  if (m === "voda" && x < 1000) return fmt(x, 0) + " L";
+  return fmt(x / 1000, d == null ? 3 : d) + " m³";
+}
+const toDispP = v => med() === "el" ? v : med() === "plin" ? v / 1000 : v / 60;   // W | m³/h | L/min
+const dispE = x => med() === "voda" ? x : x / 1000;                                 // kWh | m³ | L
+// govor
+function sayP(v, short) {
+  const m = med();
+  if (m === "el") return short ? num(v) : `${num(v)} ${vat(v)}`;
+  if (m === "plin") return short ? fmt(v / 1000, 2) : `${fmt(v / 1000, 2)} kubičnih metrov na uro`;
+  return short ? fmt(v / 60, 1) : `${fmt(v / 60, 1)} litra na minuto`;
+}
+function sayE(x, short) {
+  const m = med();
+  if (m === "el") return short ? fmt(x / 1000, 2) : kwhTxt(x / 1000);
+  if (x < 1000) return short ? String(Math.round(x)) : `${Math.round(x)} litrov`;
+  return short ? fmt(x / 1000, 2) : `${fmt(x / 1000, 2)} kubičnih metrov`;
+}
+function applyMedium() {
+  const m = med(), M = MED[m];
+  $("med").value = m;
+  document.querySelector(".top h1").textContent = M.title; document.title = M.title + " " + VER;
+  $("lPpk").textContent = M.imp; $("lMeter").textContent = M.meter; $("lPVT").textContent = M.price;
+  $("lEvHi").textContent = M.hi; $("lEvJump").textContent = M.jump; $("lEvDay").textContent = M.day; $("lPNow").textContent = M.pnow;
+  $("gMode").options[0].text = M.ge; $("gMode").options[1].text = M.gp;
+  document.querySelectorAll(".elOnly").forEach(e => e.style.display = m === "el" ? "" : "none");
+  $("wAlarm").style.display = m === "voda" ? "" : "none";
+}
+function switchMed(nw) {
+  const old = med(); if (nw === old) return;
+  const wasRun = S.run; if (S.run) stop(true);
+  S.medSet = S.medSet || {}; S.hist = S.hist || {};
+  S.medSet[old] = {}; MED_KEYS.forEach(k => S.medSet[old][k] = S.set[k]);
+  S.hist[old] = {minutes: S.minutes, hours: S.hours, days: S.days, pulses: S.pulses};
+  Object.assign(S.set, MED_DEF[nw], S.medSet[nw] || {});
+  const h = S.hist[nw] || {minutes: {}, hours: {}, days: {}, pulses: 0};
+  S.minutes = h.minutes; S.hours = h.hours; S.days = h.days; S.pulses = h.pulses; delete S.hist[nw];
+  S.roiM = S.roiM || {}; S.roiM[old] = {x: S.roi.x, y: S.roi.y, set: !!S.roiSet}; // položaj okna za vsak števec posebej
+  if (S.roiM[nw]) { S.roi = {x: S.roiM[nw].x, y: S.roiM[nw].y}; S.roiSet = S.roiM[nw].set; } else S.roiSet = false;
+  S.set.med = nw; secBuf.length = 0; lastPulse = 0; curP = null; dts = []; flowVol = 0; leakAl = false; flowAl = false; alarmOff();
+  setToUI(); applyMedium(); labels(); placeRoi(); blkTable(); save(); render(); drawGraph();
+  if (nw !== "el" && !S.set["hide_" + nw]) helpOpen("plinvoda", nw);
+  logm("Vrsta merjenja: " + MED[nw].title + (wasRun ? " — števec ustavljen, zaženi znova." : "."));
+}
+
+/* ===================== ALARMI ZA VODO ===================== */
+let flowVol = 0, flowAl = false, leakAl = false, alarmBeepT = 0, actx = null;
+const FLOW_GAP = 10 * 60000; // pretok je »neprekinjen«, dokler med impulzi ni več kot 10 min premora
+function waterPulse(t, dt, wh) {
+  if (med() !== "voda") return;
+  if (!dt || dt > FLOW_GAP) { flowVol = 0; flowAl = false; }
+  flowVol += wh;
+  if (g("wFlowOn") && !flowAl && flowVol >= +g("wFlowL")) { flowAl = true; raiseAlarm(`Alarm: neprekinjen pretok vode, iztočenih že ${Math.round(flowVol)} litrov.`); }
+}
+let leakMin = 0;
+function leakCheck(t) { // enkrat na minuto
+  if (med() !== "voda" || !g("wLeakOn") || minIdx(t) === leakMin) return;
+  leakMin = minIdx(t);
+  const H = Math.max(1, +g("wLeakH")), X = +g("wLeakLh"), hn = hourIdx(t);
+  let all = true; for (let h = hn - H; h < hn; h++) if ((S.hours[h] || 0) < X) { all = false; break; }
+  if (all && !leakAl) { leakAl = true; raiseAlarm(`Alarm: stalna poraba vode, ${H} ${H === 1 ? "uro" : H === 2 ? "uri" : H < 5 ? "ure" : "ur"} zapored vsaj ${fmt(X, X % 1 ? 1 : 0)} litrov na uro. Možno puščanje.`); }
+  if (!all) leakAl = false;
+}
+function beep() {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume();
+    [0, 0.5, 1].forEach(d => { const o = actx.createOscillator(), gn = actx.createGain(); o.frequency.value = 880; gn.gain.value = 0.25; o.connect(gn); gn.connect(actx.destination); o.start(actx.currentTime + d); o.stop(actx.currentTime + d + 0.3); });
+  } catch (e) {}
+}
+function raiseAlarm(txt) {
+  $("alarmT").textContent = txt; $("alarm").classList.add("on"); logm(txt);
+  const o = S.set.spOn; S.set.spOn = true; say(txt, true); S.set.spOn = o; // alarm se pove tudi, če je govor izklopljen
+  clearInterval(alarmBeepT);
+  const ring = () => { if (g("wSound")) { beep(); try { navigator.vibrate && navigator.vibrate([400, 200, 400, 200, 400]); } catch (e) {} } };
+  ring(); alarmBeepT = setInterval(ring, 30000); // ponavlja na 30 s do potrditve
+}
+function alarmOff() { $("alarm").classList.remove("on"); clearInterval(alarmBeepT); }
+$("alarmOk").onclick = alarmOff;
+$("med").addEventListener("change", e => switchMed(e.target.value));
+document.addEventListener("pointerdown", () => { try { if (actx) actx.resume(); } catch (e) {} }, {passive: true});
+
+/* ===================== OBRAČUNSKA MOČ IN ČASOVNI BLOKI (elektrika) ===================== */
+// Po Aktu o metodologiji za obračunavanje omrežnine (AGEN): višja sezona nov–feb, nižja mar–okt;
+// dela prost dan = sobota, nedelja, praznik. Do konca 2026 ena razporeditev ur, od 2027 nova.
+function easter(y) { const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g2 = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g2 + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451), mo = Math.floor((h + l - 7 * m + 114) / 31), da = ((h + l - 7 * m + 114) % 31) + 1; return new Date(y, mo - 1, da); }
+const HOL = ["01-01", "01-02", "02-08", "04-27", "05-01", "05-02", "06-25", "08-15", "10-31", "11-01", "12-25", "12-26"];
+function freeDay(d) {
+  if (d.getDay() === 0 || d.getDay() === 6) return true;
+  if (HOL.includes(pad(d.getMonth() + 1) + "-" + pad(d.getDate()))) return true;
+  const e = easter(d.getFullYear()); e.setDate(e.getDate() + 1); // velikonočni ponedeljek
+  return d.getMonth() === e.getMonth() && d.getDate() === e.getDate();
+}
+function blockAt(t) {
+  const d = new Date(t), mo = d.getMonth() + 1, h = d.getHours(), hi = mo >= 11 || mo <= 2, fr = freeDay(d);
+  if (d.getFullYear() <= 2026) {
+    const L = (h >= 7 && h < 14) || (h >= 16 && h < 20) ? 0 : (h >= 6 && h < 7) || (h >= 14 && h < 16) || (h >= 20 && h < 22) ? 1 : 2;
+    return (hi ? (fr ? 2 : 1) : (fr ? 3 : 2)) + L;
+  }
+  const L = (h >= 6 && h < 12) || (h >= 17 && h < 20) ? 0 : (h >= 12 && h < 17) || (h >= 20 && h < 22) ? 1 : 2;
+  return (hi ? (fr ? [3, 4, 4] : [1, 2, 3]) : (fr ? [4, 5, 5] : [3, 4, 5]))[L];
+}
+const BLKC = ["#ff3b30", "#ff9500", "#ffcc00", "#34c759", "#0a84ff"];
+const dmOf = b => +g("dm" + b) || 0;
+let qLast = null, qWarned = -1;
+function quarterInfo(t) {
+  const q = Math.floor(minIdx(t) / 15), m0 = q * 15;
+  let wh = 0; for (let m = m0; m <= minIdx(t); m++) if (S.minutes[m]) wh += S.minutes[m][0];
+  const el = Math.max(1, t - m0 * 60000) / 3600000, rem = Math.max(0, 0.25 - el), p = powerNow() || 0;
+  return {q, b: blockAt(m0 * 60000), now: wh / el / 1000, proj: (wh + p * rem) / 0.25 / 1000, elMin: el * 60};
+}
+function blockTick(t) {
+  const box = $("kBlk").parentNode;
+  if (med() !== "el") { box.style.display = "none"; return; }
+  box.style.display = "";
+  const Q = quarterInfo(t), dm = dmOf(Q.b), over = dm > 0 && Q.proj > dm;
+  $("kBlkL").textContent = `Blok ${Q.b} · 15 min`;
+  $("kBlk").textContent = fmt(Q.proj, 2) + " kW";
+  $("kBlk").style.color = over ? "var(--hot)" : "";
+  $("kBlkS").textContent = dm > 0 ? `napoved · dogovorjena ${fmt(dm, 1)} kW` : "napoved · vpiši dogovorjeno moč";
+  // konec četrturja: zapiši najvišjo 15-min moč meseca po blokih
+  if (qLast != null && Q.q !== qLast) {
+    const m0 = qLast * 15; let wh = 0, any = false; for (let m = m0; m < m0 + 15; m++) if (S.minutes[m]) { wh += S.minutes[m][0]; any = true; }
+    if (any) {
+      const mk = monKey(m0 * 60000), b = blockAt(m0 * 60000), kw = wh / 0.25 / 1000;
+      if (!S.bm || S.bm.m !== mk) S.bm = {m: mk, v: [0, 0, 0, 0, 0]};
+      if (kw > S.bm.v[b - 1]) S.bm.v[b - 1] = kw;
+      blkTable();
+    }
+  }
+  qLast = Q.q;
+  if (over && g("bmWarn") && Q.elMin >= 3 && qWarned !== Q.q && S.run) {
+    qWarned = Q.q;
+    say(`Pozor. V bloku ${Q.b} bo 15-minutna moč ${fmt(Q.proj, 1)} kilovata, dogovorjena je ${fmt(dm, 1)}.`, true);
+    logm(`Napoved preseganja obračunske moči: blok ${Q.b}, ${fmt(Q.proj, 2)} kW > ${fmt(dm, 1)} kW.`);
+  }
+}
+function blkTable() {
+  const mk = monKey(Date.now()), v = S.bm && S.bm.m === mk ? S.bm.v : [0, 0, 0, 0, 0];
+  $("bmTab").innerHTML = `<tr><th>Blok</th><th>Dogovorjena</th><th>Najvišja 15 min ta mesec</th></tr>` + [1, 2, 3, 4, 5].map(b => {
+    const dm = dmOf(b), mx = v[b - 1], over = dm > 0 && mx > dm;
+    return `<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${BLKC[b - 1]};margin-right:6px"></i>${b}</td><td>${dm ? fmt(dm, 1) + " kW" : "–"}</td><td style="${over ? "color:var(--hot);font-weight:700" : ""}">${mx ? fmt(mx, 2) + " kW" + (over ? " — presežena" : "") : "–"}</td></tr>`;
+  }).join("");
+  const n = new Date(); $("bmNow").textContent = `Zdaj velja blok ${blockAt(Date.now())} (${(n.getMonth() + 1 >= 11 || n.getMonth() + 1 <= 2) ? "višja" : "nižja"} sezona, ${freeDay(n) ? "dela prost dan" : "delovni dan"}).`;
+}
+
+/* ===================== LUČKA TELEFONA ===================== */
+async function applyTorch(quiet) {
+  if (!track) return;
+  let caps = {}; try { caps = track.getCapabilities ? track.getCapabilities() : {}; } catch (e) {}
+  if (!caps.torch) { if (g("torch") && !quiet) logm("Lučka telefona ni podprta na tej kameri ali v tem brskalniku."); $("torchSt").textContent = g("torch") ? "ni podprta" : ""; return; }
+  try { await track.applyConstraints({advanced: [{torch: !!g("torch")}]}); $("torchSt").textContent = g("torch") ? "prižgana" : ""; }
+  catch (e) { $("torchSt").textContent = "napaka"; logm("Lučka: " + e.message); }
+}
 
 /* ===================== IMPULZI IN MOČ ===================== */
 let lastPulse = 0, lastDt = 0, dts = [], curP = null;
@@ -437,6 +690,7 @@ function onPulse(t) {
   const hi = hourIdx(t); S.hours[hi] = (S.hours[hi] || 0) + wh;
   const dk = dayKey(t); const d = S.days[dk] || (S.days[dk] = [0, 0]); d[isMT(t) ? 1 : 0] += wh;
   ruleE(wh);
+  waterPulse(t, dt, wh);
   if (dt > 0 && dt < 3600000 * 3) {
     lastDt = dt; dts.push(dt); while (dts.length > Math.max(1, +g("avgN"))) dts.shift();
     const avg = dts.reduce((a, b) => a + b, 0) / dts.length;
@@ -470,6 +724,8 @@ function secondTick() {
     events(p, t);
   }
   speakRules(t);
+  leakCheck(t);
+  blockTick(t);
   render();
   keepAliveTick(t);
   if (t - lastSave > 15000) save();
@@ -480,18 +736,19 @@ function secondTick() {
 let hiActive = false, jumpRef = null, jumpCnt = 0, noneWarned = 0, dayWarned = "";
 function events(p, t) {
   const loud = !quiet();
-  if (g("evHiOn") && p > +g("evHi") && !hiActive) { hiActive = true; say(`Opozorilo. Moč ${num(p)} ${vat(p)}, nad mejo.`, true); }
-  if (hiActive && p < +g("evHi") * 0.9) hiActive = false;
+  const W = MED[med()].word, pd = toDispP(p);
+  if (g("evHiOn") && pd > +g("evHi") && !hiActive) { hiActive = true; say(`Opozorilo. ${W} ${sayP(p)}, nad mejo.`, true); }
+  if (hiActive && pd < +g("evHi") * 0.9) hiActive = false;
   if (g("evJumpOn") && loud) {
     if (jumpRef == null) jumpRef = p;
     const d = p - jumpRef;
-    if (Math.abs(d) > +g("evJump")) { if (++jumpCnt >= 3) { say(d > 0 ? `Vklop porabnika, plus ${num(d)} ${vat(d)}. Skupaj ${num(p)}.` : `Izklop porabnika, minus ${num(-d)} ${vat(-d)}. Skupaj ${num(p)}.`); jumpRef = p; jumpCnt = 0; } }
+    if (Math.abs(toDispP(d)) > +g("evJump")) { if (++jumpCnt >= 3) { const el0 = med() === "el"; say(d > 0 ? `${el0 ? "Vklop porabnika" : "Pretok narasel"}, plus ${sayP(d)}. Skupaj ${sayP(p, true)}.` : `${el0 ? "Izklop porabnika" : "Pretok upadel"}, minus ${sayP(-d)}. Skupaj ${sayP(p, true)}.`); jumpRef = p; jumpCnt = 0; } }
     else { jumpCnt = 0; jumpRef = jumpRef * 0.9 + p * 0.1; }
   }
   const dk = dayKey(t);
   if (dk !== dayMaxKey) { dayMaxKey = dk; dayMax = null; }
-  if (dayMax == null || p > dayMax) { if (dayMax != null && g("evNewMax") && loud && p > dayMax * 1.05 && p > 500) say(`Nov dnevni maksimum, ${num(p)} ${vat(p)}.`); dayMax = Math.max(dayMax || 0, p); }
-  if (g("evDayOn") && dayWh(dk) / 1000 > +g("evDay") && dayWarned !== dk) { dayWarned = dk; say(`Presežena dnevna meja. Danes že ${kwhTxt(dayWh(dk) / 1000)}.`, true); }
+  if (dayMax == null || p > dayMax) { if (dayMax != null && g("evNewMax") && loud && p > dayMax * 1.05 && (med() !== "el" || p > 500)) say(`Nov dnevni maksimum, ${sayP(p)}.`); dayMax = Math.max(dayMax || 0, p); }
+  if (g("evDayOn") && dispE(dayWh(dk)) > +g("evDay") && dayWarned !== dk) { dayWarned = dk; say(`Presežena dnevna meja. Danes že ${sayE(dayWh(dk))}.`, true); }
 }
 function noneCheck(t) {
   if (!g("evNoneOn") || !S.run || !lastPulse) return;
@@ -562,14 +819,14 @@ function ruleText(r, a, t) {
   const dk = dayKey(t);
   r.items.forEach(it => {
     if (it === "time") out.push(short ? hm(t) : `Ura je ${new Date(t).getHours()} in ${new Date(t).getMinutes()}`);
-    if (it === "p" && p != null) out.push(short ? num(p) : `Moč ${num(p)} ${vat(p)}`);
-    if (it === "min" && a.min != null) out.push(short ? `min ${num(a.min)}` : `najmanj ${num(a.min)}`);
-    if (it === "max" && a.max != null) out.push(short ? `max ${num(a.max)}` : `največ ${num(a.max)}`);
-    if (it === "avg" && avg != null) out.push(short ? `povprečje ${num(avg)}` : `povprečno ${num(avg)} ${vat(avg)}`);
-    if (it === "e") out.push(short ? `${fmt(a.e / 1000, 3)}` : `poraba ${kwhTxt(a.e / 1000)}`);
-    if (it === "today") out.push(short ? `danes ${fmt(dayWh(dk) / 1000, 2)}` : `danes ${kwhTxt(dayWh(dk) / 1000)}`);
+    if (it === "p" && p != null) out.push(short ? sayP(p, true) : `${MED[med()].word} ${sayP(p)}`);
+    if (it === "min" && a.min != null) out.push(short ? `min ${sayP(a.min, true)}` : `najmanj ${sayP(a.min, true)}`);
+    if (it === "max" && a.max != null) out.push(short ? `max ${sayP(a.max, true)}` : `največ ${sayP(a.max, true)}`);
+    if (it === "avg" && avg != null) out.push(short ? `povprečje ${sayP(avg, true)}` : `povprečno ${sayP(avg)}`);
+    if (it === "e") out.push(short ? sayE(a.e, true) : `poraba ${sayE(a.e)}`);
+    if (it === "today") out.push(short ? `danes ${sayE(dayWh(dk), true)}` : `danes ${sayE(dayWh(dk))}`);
     if (it === "cost") out.push(short ? `${fmt(dayCost(dk), 2)} evra` : `strošek danes ${eurTxt(dayCost(dk))}`);
-    if (it === "proj") { const pr = projMonth(); if (pr) out.push(`napoved meseca ${fmt(pr.kwh, 0)} kilovatnih ur`); }
+    if (it === "proj") { const pr = projMonth(); if (pr) out.push(`napoved meseca ${sayE(pr.kwh * 1000)}`); }
   });
   return out.join(short ? ", " : ". ") + ".";
 }
@@ -616,7 +873,8 @@ async function camStart() {
   track.onended = () => { logm("Kamera prekinjena."); if (S.run && g("kaRestart")) setTimeout(camRestart, 1500); };
   vid.srcObject = stream; try { await vid.play(); } catch (e) {}
   D = null; lastFrame = Date.now(); expCtl = {kind: "none"};
-  setTimeout(expInit, 1200);
+  setTimeout(() => applyTorch(true), 700);
+  setTimeout(async () => { await expInit(); applyTorch(); }, 1200);
   loopFrames();
   logm("Kamera zagnana.");
   setTimeout(() => { if (!S.roiSet && stream && !find) findStart(); }, 1500);
@@ -747,7 +1005,7 @@ function chooseChannel() {
    utrip = signal se dvigne nad »nizko« vsaj za prag (velikost spremembe) in nato pade nazaj čez polovico skoka.
    Počasne spremembe (kamera, dnevna svetloba) ne štejejo, ker jih »nizko« sproti sledi. */
 function detect(v, now) {
-  const minStep = +g("minStep"), el = g("mtype") !== "mark";
+  const minStep = +g("minStep"), el = med() === "el"; // elektrika: LED utrip; plin/voda: oznaka (test)
   D.sm.push(v); D.sm.shift();
   const s = (D.sm[0] + D.sm[1] + D.sm[2]) / 3; D.s = s;
   if (now < D.settle) { D.low = s; D.high = s; D.prev = s; return; }
@@ -956,24 +1214,26 @@ function projMonth() {
 }
 function render() {
   const t = Date.now(), p = powerNow();
-  $("pNow").innerHTML = (p == null ? "--" : fmt(p, p < 100 ? 1 : 0)) + "<small>W</small>";
-  $("dimP").textContent = p == null ? "--" : fmt(p, 0) + " W";
+  const pp = p == null ? ["--", pParts(0)[1]] : pParts(p);
+  $("pNow").innerHTML = pp[0] + "<small>" + pp[1] + "</small>";
+  $("dimP").textContent = p == null ? "--" : fmtP(p);
   const dk = dayKey(t), yk = dayKey(t - 86400000);
-  $("kToday").textContent = fmt(dayWh(dk) / 1000, 3) + " kWh"; $("kTodayC").textContent = fmt(dayCost(dk), 2) + " €";
-  $("kYest").textContent = S.days[yk] ? fmt(dayWh(yk) / 1000, 2) + " kWh" : "–"; $("kYestC").textContent = S.days[yk] ? fmt(dayCost(yk), 2) + " €" : "";
+  $("kToday").textContent = fmtE(dayWh(dk)); $("kTodayC").textContent = fmt(dayCost(dk), 2) + " €";
+  $("kYest").textContent = S.days[yk] ? fmtE(dayWh(yk), 2) : "–"; $("kYestC").textContent = S.days[yk] ? fmt(dayCost(yk), 2) + " €" : "";
   const pr = projMonth();
-  if (pr) { $("kMonth").textContent = fmt(pr.now, 1) + " kWh"; $("kMonthC").textContent = fmt(pr.nowC, 2) + " €"; $("kProj").textContent = fmt(pr.kwh, 0) + " kWh"; $("kProjC").textContent = fmt(pr.eur, 2) + " €"; }
+  if (pr) { $("kMonth").textContent = fmtE(pr.now * 1000, 1); $("kMonthC").textContent = fmt(pr.nowC, 2) + " €"; $("kProj").textContent = fmtE(pr.kwh * 1000, 1); $("kProjC").textContent = fmt(pr.eur, 2) + " €"; }
   // min/max danes iz minutnih košev
   const d0 = new Date(); d0.setHours(0, 0, 0, 0); const m0 = minIdx(d0.getTime()), m1 = minIdx(t);
   let mn = null, mx = null; for (let i = m0; i <= m1; i++) { const m = S.minutes[i]; if (m && m[1] != null) { mn = mn == null ? m[1] : Math.min(mn, m[1]); mx = mx == null ? m[2] : Math.max(mx, m[2]); } }
-  $("kMinMax").textContent = mn == null ? "–" : fmt(mn, 0) + " / " + fmt(mx, 0);
+  $("kMinMax").textContent = mn == null ? "–" : pParts(mn)[0] + " / " + pParts(mx)[0]; $("kMMu").textContent = pParts(mx || 0)[1];
   // osnovna poraba: najnižje 30-min povprečje v zadnjih 24 h
   let best = null; for (let s = m1 - 1440; s <= m1 - 30; s += 30) { let wh = 0, any = false; for (let i = s; i < s + 30; i++) if (S.minutes[i]) { wh += S.minutes[i][0]; any = true; } if (any) { const w = wh * 2; best = best == null ? w : Math.min(best, w); } }
-  $("kBase").textContent = best == null ? "–" : fmt(best, 0) + " W";
+  $("kBase").textContent = best == null ? "–" : fmtP(best);
   const last = secBuf.filter(s => s.t > t - 60000);
-  if (last.length) { const a = last.reduce((x, s) => x + s.p, 0) / last.length; $("k60").textContent = fmt(a, 0) + " W"; $("k60mm").textContent = fmt(Math.min(...last.map(s => s.p)), 0) + " / " + fmt(Math.max(...last.map(s => s.p)), 0) + " W"; }
-  $("kMeter").textContent = fmt(+g("meter0") + S.pulses * whpp() / 1000, 2) + " kWh"; $("kPulses").textContent = S.pulses.toLocaleString("sl-SI") + " imp";
-  $("dimS").textContent = "danes " + fmt(dayWh(dk) / 1000, 2) + " kWh · " + fmt(dayCost(dk), 2) + " €";
+  if (last.length) { const a = last.reduce((x, s) => x + s.p, 0) / last.length; $("k60").textContent = fmtP(a); $("k60mm").textContent = pParts(Math.min(...last.map(s => s.p)))[0] + " / " + fmtP(Math.max(...last.map(s => s.p))); }
+  $("kMeter").textContent = fmt(+g("meter0") + S.pulses * whpp() / 1000, med() === "el" ? 2 : 3) + (med() === "el" ? " kWh" : " m³"); $("kPulses").textContent = S.pulses.toLocaleString("sl-SI") + " imp";
+  $("dimS").textContent = "danes " + fmtE(dayWh(dk), 2) + " · " + fmt(dayCost(dk), 2) + " €";
+  if (med() === "voda") $("wSt").textContent = `Trenutni neprekinjen pretok: ${fmt(flowVol, 0)} L${lastPulse && Date.now() - lastPulse > FLOW_GAP ? " (končan)" : ""}. Zadnja ura: ${fmt(S.hours[hourIdx(t) - 1] || 0, 1)} L.`;
   $("dataInfo").textContent = `Shranjeno: ${Object.keys(S.minutes).length} minut, ${Object.keys(S.hours).length} ur, ${Object.keys(S.days).length} dni.`;
 }
 
@@ -1004,17 +1264,17 @@ function series() {
     for (let s = endM - tot; s < endM; s += len) {
       let wh = 0, mx = null, mn = null, any = false;
       for (let i = s; i < s + len; i++) { const m = S.minutes[i]; if (m) { any = true; wh += m[0]; if (m[2] != null) { mx = mx == null ? m[2] : Math.max(mx, m[2]); mn = mn == null ? m[1] : Math.min(mn, m[1]); } } }
-      out.push({t: s * 60000, v: any ? conv(wh, len, s * 60000) : 0, lbl: hm(s * 60000), mx, mn, mt: isMT(s * 60000)});
+      out.push({t: s * 60000, v: any ? conv(wh, len, s * 60000) : 0, lbl: hm(s * 60000), mx, mn, mt: med() === "el" ? isMT(s * 60000) : undefined, blk: med() === "el" ? blockAt(s * 60000) : 0});
     }
   } else if (graphTab === "wk") {
     const h0 = hourIdx(t) - 167;
-    for (let h = h0; h <= hourIdx(t); h++) { const wh = S.hours[h] || 0; const d = new Date(h * 3600000); out.push({t: h * 3600000, v: conv(wh, 60, h * 3600000), lbl: ["ned", "pon", "tor", "sre", "čet", "pet", "sob"][d.getDay()] + " " + pad(d.getHours()) + "h", mt: isMT(h * 3600000)}); }
+    for (let h = h0; h <= hourIdx(t); h++) { const wh = S.hours[h] || 0; const d = new Date(h * 3600000); out.push({t: h * 3600000, v: conv(wh, 60, h * 3600000), lbl: ["ned", "pon", "tor", "sre", "čet", "pet", "sob"][d.getDay()] + " " + pad(d.getHours()) + "h", mt: med() === "el" ? isMT(h * 3600000) : undefined, blk: med() === "el" ? blockAt(h * 3600000) : 0}); }
   } else if (graphTab === "d7" || graphTab === "mo") {
     const n = graphTab === "d7" ? 7 : 31;
     for (let i = n - 1; i >= 0; i--) {
       const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i); const k = dayKey(d);
       const v = mode === "e" ? dayWh(k) / 1000 : mode === "p" ? dayWh(k) / 24 : dayCost(k);
-      out.push({t: d.getTime(), v, lbl: d.getDate() + "." + (d.getMonth() + 1) + ".", sub: S.days[k] ? [S.days[k][0] / 1000, S.days[k][1] / 1000] : null});
+      out.push({t: d.getTime(), v, lbl: d.getDate() + "." + (d.getMonth() + 1) + ".", sub: S.days[k] && med() === "el" ? [S.days[k][0] / 1000, S.days[k][1] / 1000] : null});
     }
   } else if (graphTab === "yr") {
     for (let i = 11; i >= 0; i--) {
@@ -1037,7 +1297,7 @@ function drawGraph() {
   const maxV = Math.max(1e-9, ...vals, ...(line ? pts.map(p => p.mx || 0) : [])) * 1.1;
   const L = 44, Rr = 6, T = 8, B = 26, pw = W - L - Rr, ph = H - T - B;
   const Y = v => T + ph - v / maxV * ph;
-  const C = {dim: cssv("--dim"), line: cssv("--line"), acc: cssv("--acc"), vt: cssv("--vt"), mt: cssv("--mt"), hl: cssv("--hl"), warn: cssv("--warn")};
+  const C = {ink: cssv("--ink"), dim: cssv("--dim"), line: cssv("--line"), acc: cssv("--acc"), vt: cssv("--vt"), mt: cssv("--mt"), hl: cssv("--hl"), warn: cssv("--warn")};
   x.font = "11px Inter,system-ui,sans-serif"; x.fillStyle = C.dim; x.strokeStyle = C.line; x.lineWidth = 1;
   for (let i = 0; i <= 4; i++) { const v = maxV / 4 * i, y = Y(v); x.beginPath(); x.moveTo(L, y); x.lineTo(W - Rr, y); x.stroke(); x.textAlign = "right"; x.fillText(fmtAxis(v, unit), L - 5, y + 4); }
   const n = pts.length, bw = pw / n;
@@ -1057,7 +1317,14 @@ function drawGraph() {
     pts.forEach((p, i) => {
       const X = L + i * bw + Math.max(.5, bw * .12), w = Math.max(1, bw * .76);
       if (p.sub && g("gMode") === "e") { const h1 = p.sub[0] / maxV * ph, h2 = p.sub[1] / maxV * ph; x.fillStyle = C.vt; x.fillRect(X, T + ph - h1, w, h1); x.fillStyle = C.mt; x.fillRect(X, T + ph - h1 - h2, w, h2); }
-      else { x.fillStyle = i === n - 1 ? C.hl : (p.mt === undefined ? C.acc : p.mt ? C.mt : C.vt); const y = Y(p.v || 0); x.fillRect(X, y, w, T + ph - y); }
+      else {
+        const byBlk = g("gCol") === "blk" && p.blk;
+        x.fillStyle = byBlk ? BLKC[p.blk - 1] : i === n - 1 ? C.hl : (p.mt === undefined ? C.acc : p.mt ? C.mt : C.vt);
+        if (byBlk && i === n - 1) x.globalAlpha = 0.6;
+        const y = Y(p.v || 0); x.fillRect(X, y, w, T + ph - y); x.globalAlpha = 1;
+        // oznaka dogovorjene moči bloka (prikaz povprečne moči)
+        if (byBlk && g("gMode") === "p" && dmOf(p.blk) > 0 && dmOf(p.blk) * 1000 < maxV) { const yl = Y(dmOf(p.blk) * 1000); x.fillStyle = C.ink || "#fff"; x.fillRect(X - 1, yl - 1, w + 2, 2); }
+      }
     });
   }
   // oznake osi x
@@ -1068,18 +1335,24 @@ function drawGraph() {
   const sum = vals.reduce((a, b) => a + b, 0);
   const mxp = pts.reduce((a, p) => (p.v != null && (a == null || p.v > a.v)) ? p : a, null);
   $("gSum").textContent = line
-    ? (vals.length ? `Povprečje ${fmt(sum / vals.length, 0)} W · najvišje ${fmt(Math.max(...pts.map(p => p.mx || 0)), 0)} W · najnižje ${fmt(Math.min(...pts.filter(p => p.mn != null).map(p => p.mn)), 0)} W` : "Ni podatkov — zaženi števec.")
-    : `Skupaj ${unit === "W" ? "povp. " + fmt(sum / (vals.length || 1), 0) + " W" : fmt(sum, unit === "€" ? 2 : 2) + " " + unit} · največ ${mxp ? mxp.lbl + " (" + fmtAxis(mxp.v, unit) + ")" : "–"} · ${g("gMode") === "e" && (graphTab === "d7" || graphTab === "mo") ? "oranžno VT, modro MT" : (["m15","m30","h1","h48","wk"].includes(graphTab) ? "oranžno VT, modro MT" : "")} · črtkano povprečje`;
+    ? (vals.length ? `Povprečje ${fmtP(sum / vals.length)} · najvišje ${fmtP(Math.max(...pts.map(p => p.mx || 0)))} · najnižje ${fmtP(Math.min(...pts.filter(p => p.mn != null).map(p => p.mn)))}` : "Ni podatkov — zaženi števec.")
+    : `Skupaj ${unit === "W" ? "povp. " + fmtAxis(sum / (vals.length || 1), "W") : fmtAxis(sum, unit)} · največ ${mxp ? mxp.lbl + " (" + fmtAxis(mxp.v, unit) + ")" : "–"} · ${g("gMode") === "e" && (graphTab === "d7" || graphTab === "mo") ? "oranžno VT, modro MT" : (["m15","m30","h1","h48","wk"].includes(graphTab) && med() === "el" ? (g("gCol") === "blk" ? "barve = časovni bloki 1–5" + (g("gMode") === "p" ? ", črtica = dogovorjena moč" : "") : "oranžno VT, modro MT") : "")} · črtkano povprečje`;
 }
-function fmtAxis(v, u) { if (u === "kWh") return v < 1 ? fmt(v * 1000, 0) + " Wh" : fmt(v, v < 10 ? 2 : 1) + " kWh"; if (u === "€") return fmt(v, 2) + " €"; return v >= 1000 ? fmt(v / 1000, 1) + " kW" : fmt(v, 0) + " W"; }
+function fmtAxis(v, u) {
+  if (u === "kWh") { const el = med() === "el"; return v < 1 ? fmt(v * 1000, 0) + (el ? " Wh" : " L") : fmt(v, v < 10 ? 2 : 1) + (el ? " kWh" : " m³"); }
+  if (u === "€") return fmt(v, 2) + " €";
+  if (med() === "el") return v >= 1000 ? fmt(v / 1000, 1) + " kW" : fmt(v, 0) + " W";
+  return fmtP(v);
+}
 (() => { // namig ob dotiku
   const cv = $("gCv"), tip = $("gTip");
   const show = e => {
     const r = cv.getBoundingClientRect(), X = e.clientX - r.left, b = bars.find(b => X >= b.x0 && X < b.x1);
     if (!b) { tip.style.display = "none"; return; }
     const u = series().unit, p = b.p; let s = `${p.lbl}: ${p.v == null ? "–" : fmtAxis(p.v, graphTab.startsWith("live") ? "W" : u)}`;
-    if (p.mx != null) s += ` · min ${fmt(p.mn, 0)} / max ${fmt(p.mx, 0)} W`;
+    if (p.mx != null) s += ` · min ${pParts(p.mn)[0]} / max ${fmtP(p.mx)}`;
     if (p.sub) s += ` · VT ${fmt(p.sub[0], 2)} / MT ${fmt(p.sub[1], 2)} kWh`;
+    if (p.blk) s += ` · blok ${p.blk}${dmOf(p.blk) ? " (dogovorjena " + fmt(dmOf(p.blk), 1) + " kW)" : ""}`;
     tip.textContent = s; tip.style.display = "block";
     tip.style.left = Math.min(r.width - tip.offsetWidth - 4, Math.max(4, X - tip.offsetWidth / 2)) + "px"; tip.style.top = "4px";
   };
@@ -1094,11 +1367,11 @@ function out(name, text, mime) { // prenos datoteke (če ga okolje dovoli) + kop
   try { navigator.clipboard && navigator.clipboard.writeText(text).then(() => logm(name + " kopirano v odložišče.")).catch(() => {}); } catch (e) {}
 }
 $("bCsvM").onclick = () => {
-  const rows = ["cas;Wh;Pmin_W;Pmax_W"]; Object.keys(S.minutes).sort((a, b) => a - b).forEach(k => { const m = S.minutes[k], d = new Date(k * 60000); rows.push(`${dayKey(d)} ${hm(d)};${fmt(m[0], 2)};${m[1] == null ? "" : Math.round(m[1])};${m[2] == null ? "" : Math.round(m[2])}`); });
+  const el = med() === "el", rows = [el ? "cas;Wh;Pmin_W;Pmax_W" : "cas;L;Qmin_L_h;Qmax_L_h"]; Object.keys(S.minutes).sort((a, b) => a - b).forEach(k => { const m = S.minutes[k], d = new Date(k * 60000); rows.push(`${dayKey(d)} ${hm(d)};${fmt(m[0], 2)};${m[1] == null ? "" : Math.round(m[1])};${m[2] == null ? "" : Math.round(m[2])}`); });
   out("stevec_minute.csv", rows.join("\n"), "text/csv");
 };
 $("bCsvD").onclick = () => {
-  const rows = ["datum;VT_kWh;MT_kWh;skupaj_kWh;strosek_EUR"]; Object.keys(S.days).sort().forEach(k => { const d = S.days[k]; rows.push(`${k};${fmt(d[0] / 1000, 3)};${fmt(d[1] / 1000, 3)};${fmt(dayWh(k) / 1000, 3)};${fmt(dayCost(k), 2)}`); });
+  const rows = [med() === "el" ? "datum;VT_kWh;MT_kWh;skupaj_kWh;strosek_EUR" : "datum;-;-;poraba_m3;strosek_EUR"]; Object.keys(S.days).sort().forEach(k => { const d = S.days[k]; rows.push(`${k};${fmt(d[0] / 1000, 3)};${fmt(d[1] / 1000, 3)};${fmt(dayWh(k) / 1000, 3)};${fmt(dayCost(k), 2)}`); });
   out("stevec_dnevi.csv", rows.join("\n"), "text/csv");
 };
 $("bJson").onclick = () => out("stevec_kopija_" + dayKey(Date.now()) + ".json", JSON.stringify(S), "application/json");
@@ -1145,7 +1418,7 @@ function ledTarget(t) {
 const ledOnMs = iv => Math.min(1200, Math.max(40, iv * 0.1));
 function ledLabels() {
   const p = ledPow(+g("ledP")), dt = whpp() * 3600 / p, on = ledOnMs(dt * 1000);
-  const txt = `${fmtAxis(p, "W")} · Δt ${fmt(dt, dt < 10 ? 2 : 1)} s · ${fmt(60 / dt, 1)} imp/min`;
+  const txt = `${fmtP(p)} · Δt ${fmt(dt, dt < 10 ? 2 : 1)} s · ${fmt(60 / dt, 1)} imp/min`;
   $("ledPL").textContent = txt; $("ledPL2").textContent = txt;
   $("ledWL").textContent = `${fmt(on, 0)} ms prižgano · ${fmt(dt * 1000 - on, 0)} ms ugasnjeno (${fmt(on / (dt * 10), 0)} %)`;
   $("ledSzL").textContent = g("ledSz") + " % zaslona"; $("ledSzL2").textContent = g("ledSz") + " %";
@@ -1176,8 +1449,8 @@ function ledFrame(now) {
     const base = now - LS.next > iv ? now : LS.next; // po premoru znova uskladi
     LS.next = Math.max(base + iv, now + on + 20); // čas naslednjega utripa (brez lezenja ure)
     dot.style.background = col[0]; dot.style.boxShadow = `0 0 40px ${col[0]}`;
-    $("ledNow").textContent = fmtAxis(LS.p, "W");
-    $("ledCnt").textContent = `${LS.cnt} imp · ${fmt(LS.wh / 1000, 3)} kWh`;
+    $("ledNow").textContent = fmtP(LS.p);
+    $("ledCnt").textContent = `${LS.cnt} imp · ${fmtE(LS.wh)}`;
   } else if (LS.on && now >= LS.offAt) {
     LS.on = false; dot.style.background = col[1]; dot.style.boxShadow = "none";
   }
@@ -1192,7 +1465,7 @@ function ledWakeSt() { // zaslon mora ostati prižgan: ob izgubi zaklepa ga pono
 }
 $("bLed").onclick = ledOpen;
 $("ledExit").onclick = ledClose;
-$("ledReset").onclick = () => { if (LS) { LS.cnt = 0; LS.wh = 0; $("ledCnt").textContent = "0 imp · 0,000 kWh"; } };
+$("ledReset").onclick = () => { if (LS) { LS.cnt = 0; LS.wh = 0; $("ledCnt").textContent = "0 imp · " + fmtE(0); } };
 $("ledP2").addEventListener("input", () => { $("ledP").value = $("ledP2").value; uiToSet(); ledLabels(); saveSoon(); if (LS) LS.next = Math.min(LS.next, performance.now() + whpp() * 3600000 / ledTarget(Date.now())); });
 $("ledP").addEventListener("input", () => { uiToSet(); ledLabels(); saveSoon(); });
 $("ledSz").addEventListener("input", () => { uiToSet(); ledLabels(); ledSize(); saveSoon(); });
@@ -1241,7 +1514,7 @@ const HELP = {
 splosno: ["Pomoč — splošno", `
 <h3>Namen programa</h3>
 <p>Števec elektrike je namenjen sprotnemu (online) spremljanju porabe elektrike. Poudarek je na <b>trenutni porabi</b>: takoj vidiš in slišiš, koliko porabljaš v tem trenutku in kaj se zgodi, ko vklopiš ali izklopiš posamezen porabnik. Na portalu Moj elektro so podatki na voljo šele z zamikom, trenutne porabe tam ne dobiš.</p>
-<p>Plin in voda sta zaenkrat samo testno (glej pomoč v razdelku »Vir impulzov«).</p>
+<p>V <b>Nastavitve števca → Vrsta merjenja</b> izbereš <b>Elektrika</b>, <b>Plin</b> ali <b>Voda</b>. Plin in voda sta zaenkrat samo testno. Pri vodi so na voljo alarmi za neprekinjen pretok in puščanje (glej pomoč v razdelku Nastavitve).</p>
 <h3>Kako meri</h3>
 <p>Vsak sodoben števec ima LED diodo, ki ob vsaki porabljeni enoti energije enkrat utripne. Na ploščici števca piše, koliko utripov je ena kilovatna ura, npr. <b>1000 imp/kWh</b>. Pri 1000 imp/kWh je en utrip 1 Wh.</p>
 <p>Telefon s kamero gleda LED in meri čas med dvema utripoma (Δt). Iz tega izračuna moč:</p>
@@ -1263,7 +1536,7 @@ splosno: ["Pomoč — splošno", `
 </ol>
 <h3>Razdelki</h3>
 <ul>
-<li><b>Trenutna moč</b> — velika številka moči in kazalniki porabe.</li>
+<li><b>Trenutna moč</b> — velika številka moči, kazalniki porabe in časovni blok s 15-minutno napovedjo.</li>
 <li><b>Grafi</b> — poraba v živo, po 15 min, 30 min, urah, dnevih, mesecih.</li>
 <li><b>Vir impulzov</b> — kamera, simulator ali ročni impulz; nastavitve kamere.</li>
 <li><b>Govor</b> — glasovna obvestila v rednih intervalih in ob dogodkih.</li>
@@ -1271,7 +1544,9 @@ splosno: ["Pomoč — splošno", `
 <li><b>Stalno delovanje</b> — prižgan zaslon, samodejni zagon, stanje shrambe.</li>
 <li><b>Simulator LED</b> — drugi telefon utripa kot števec, za preizkus.</li>
 <li><b>Podatki</b> — izvoz, varnostna kopija, uvoz, brisanje.</li>
+<li><b>Zgodovina verzij</b> na dnu strani — spremembe po verzijah in seznam še neizvedenih predlogov.</li>
 </ul>
+<p>To okno se samodejno odpre samo ob prvem zagonu; kasneje ga odpreš z gumbom Pomoč.</p>
 <p>Vsak razdelek ima svoj gumb <b>?</b> z natančnim opisom.</p>
 <h3>Gumbi v glavi</h3>
 <ul>
@@ -1282,6 +1557,36 @@ splosno: ["Pomoč — splošno", `
 <li><b>⛶</b> — celozaslonski način (Android ob vklopu prikaže sistemsko obvestilo).</li>
 </ul>`],
 
+plinvoda: ["Pomoč — plin in voda (test)", `
+<p>Merjenje plina in vode je zaenkrat <b>testno</b>. Večina teh števcev nima LED diode, zato kamera namesto utripa opazuje premikajočo se oznako.</p>
+<h3>Kaj potrebuješ</h3>
+<ul>
+<li><b>Stalno osvetlitev</b> števca. Vklopi <b>Lučka telefona</b> v razdelku Vir impulzov ali postavi majhno LED svetilko, ki sveti enakomerno. Svetila, ki utripa (nekatere varčne žarnice, LED na PWM), ne uporabljaj, ker ustvarja lažne impulze.</li>
+<li>Telefon trdno pritrjen, kamera pravokotno na številčnico.</li>
+</ul>
+<h3>Kam postaviti okno</h3>
+<ul>
+<li><b>Plin:</b> na zadnjem kolescu številčnice je pogosto srebrna odsevna ploščica (pri številki 0 ali 6). Okno postavi na mesto, kjer ploščica gre mimo. En prehod = en impulz.</li>
+<li><b>Voda:</b> na zadnjo (rdečo) številko ali na rdeč kazalec litrov. Okno postavi na del, ki se ob vsakem obratu spremeni iz svetlega v temnega.</li>
+<li>Okno naj bo majhno in samo na tem delu, da ga ne motijo druge številke.</li>
+</ul>
+<h3>Impulzi na m³</h3>
+<ul>
+<li>Ugotovi, koliko obratov opazovanega kolesca je 1 m³. Če je zadnje kolesce 0,001 m³ (1 L) na številko, en obrat (10 številk) = 10 L → 100 impulzov na m³.</li>
+<li>Če opazuješ eno številko na kolescu (en prehod na obrat): impulzi na m³ = 1000 / litri na obrat.</li>
+<li>Preveri: natoči npr. 10 L vode v vedro in primerjaj s preštetimi litri.</li>
+</ul>
+<h3>Težave in rešitve</h3>
+<ul>
+<li><b>Odsevi na steklu</b> (lučka, sonce) — telefon rahlo nagni, da odsev pade izven okna; po potrebi izklopi lučko in uporabi zunanjo svetilko od strani.</li>
+<li><b>Orošeno ali umazano steklo</b> (vodomer v jašku) — obriši steklo; ob vlagi rosenje zmanjša kontrast, povečaj velikost spremembe.</li>
+<li><b>Tema v jašku</b> — brez lučke kamera ne vidi ničesar; lučka mora biti ves čas prižgana.</li>
+<li><b>Redki impulzi pri majhnem pretoku</b> — pri 100 imp/m³ in pretoku 1 L/min pride impulz šele vsakih 10 minut. Trenutni pretok se zato osveži počasi; za hitrejši odziv opazuj kolesce z manjšo vrednostjo.</li>
+<li><b>Dvojno štetje</b> — oznaka obstane na robu okna in rahlo »trepeta«. Povečaj najkrajši razmik (npr. 500 ms) in velikost spremembe.</li>
+<li><b>Magnetni ali induktivni izhod</b> (reed kontakt, M-Bus) — kamera ga ne vidi; za tak števec je potreben ESP32 s senzorjem.</li>
+<li><b>Mraz</b> — v jašku pozimi telefon hitro izgubi baterijo; uporabi polnilec in telefon zaščiti.</li>
+</ul>
+<p>To okno se ob izbiri odpre samodejno. Če ne želiš, da se še odpira, označi »Ne prikaži več samodejno«. Vedno ga najdeš pod gumbom <b>?</b> v razdelku Nastavitve števca.</p>`],
 moc: ["Pomoč — trenutna moč in kazalniki", `
 <h3>Trenutna moč</h3>
 <p>Velika številka je moč, izračunana iz časa med zadnjima utripoma. Desno je <b>Δt impulza</b> (čas med zadnjima utripoma) in vir, ki trenutno deluje.</p>
@@ -1296,6 +1601,7 @@ moc: ["Pomoč — trenutna moč in kazalniki", `
 <li><b>Min / max danes</b> — najmanjša in največja moč danes, iz sekundnih meritev.</li>
 <li><b>Osnovna poraba 24 h</b> — najnižje 30-minutno povprečje v zadnjih 24 urah. To je poraba naprav, ki delujejo ves čas (hladilnik, router, stanje pripravljenosti). Visoka osnovna poraba pomeni skrite porabnike.</li>
 <li><b>Zadnjih 60 s</b> — povprečna moč zadnje minute ter najmanjša in največja.</li>
+<li><b>Blok · 15 min</b> (samo elektrika) — časovni blok, ki velja zdaj, in napoved 15-minutne povprečne moči tekočega četrturja; rdeče, če bo presegla dogovorjeno obračunsko moč (glej pomoč v Nastavitvah).</li>
 <li><b>Stanje števca</b> — začetno stanje iz nastavitev + vsi prešteti impulzi. Občasno ga primerjaj s številko na števcu: razlika pomeni zgrešene ali lažne impulze. Pod njim je skupno število impulzov.</li>
 </ul>`],
 
@@ -1325,6 +1631,8 @@ grafi: ["Pomoč — grafi", `
 <li><b>Rumena črtkana črta</b> je povprečje vseh prikazanih intervalov.</li>
 <li>Pri grafih v živo je modra črta moč (neprekinjena, manjkajoče sekunde premosti), svetlo polje okoli nje pa razpon med najmanjšo in največjo moč. Rumena črtkana črta povprečja je pod modro.</li>
 </ul>
+<h3>Barve po časovnih blokih (elektrika)</h3>
+<p>Izbirnik <b>Barve</b> preklopi med VT/MT in <b>bloki</b>. Pri blokih je vsak stolpec v 15/30 min, urnih in tedenskem grafu obarvan po časovnem bloku: 1 rdeča, 2 oranžna, 3 rumena, 4 zelena, 5 modra. Pri prikazu »Povprečna moč« je na stolpcu bela črtica na višini dogovorjene moči bloka — stolpec nad črtico pomeni preseganje.</p>
 <h3>Podrobnosti</h3>
 <p>Dotakni se stolpca: zgoraj se izpiše čas, vrednost, najmanjša in največja moč v tem intervalu ter delitev na VT in MT.</p>
 <p>Pod grafom je povzetek: skupna vrednost, interval z največjo porabo in povprečje.</p>
@@ -1371,12 +1679,13 @@ vir: ["Pomoč — vir impulzov in kamera", `
  <li><b>Rdeča, zelena, modra</b> — samo ena barva.</li>
  <li><b>Rdeča − modra</b> — najboljše za rdeč LED: bela svetloba (luči, sonce) se odšteje, zato jo ne moti.</li>
  </ul></li>
-<li><b>Vrsta števca</b>:
+<li><b>Način zaznavanja</b> sledi vrsti merjenja v Nastavitvah:
  <ul>
- <li><b>Elektrika (LED utrip)</b> — utrip šteje, ko LED ugasne. Svetlobni skok, ki traja dlje kot 1,5 s, ne šteje: program ga razume kot spremembo osvetlitve v prostoru (npr. prižgana luč) in nastavi novo ozadje.</li>
- <li><b>Plin / voda – oznaka (test)</b> — za števce brez LED. Števec mora biti ves čas osvetljen s stalno lučko (ne utripajočo). Okno postavi na odsevno oznako ali zadnje kolesce. Vsak prehod oznake je en impulz; v nastavitve vpiši, koliko prehodov je 1 m³. Enote se še vedno izpisujejo kot kWh in W.</li>
+ <li><b>Elektrika</b> — LED utrip; šteje, ko LED ugasne. Svetlobni skok, ki traja dlje kot 1,5 s, ne šteje: program ga razume kot trajno spremembo osvetlitve v prostoru (npr. prižgana luč).</li>
+ <li><b>Plin, voda (test)</b> — za števce brez LED. Števec mora biti ves čas osvetljen s stalno lučko (ne utripajočo). Okno postavi na odsevno oznako ali zadnje kolesce. Vsak prehod oznake je en impulz in šteje ob začetku, brez omejitve trajanja.</li>
  </ul></li>
 <li><b>Kamera</b> — zadnja ali sprednja.</li>
+<li><b>Lučka telefona</b> — bliskavica sveti ves čas, ko kamera teče (stalna osvetlitev za plin in vodo). Ob ponovnem zagonu kamere se sama znova prižge. Pri elektriki je privzeto izklopljena, ker se lahko odbija od stekla števca. Deluje samo z zadnjo kamero in v brskalnikih, ki to omogočajo (Chrome na Androidu); če ni podprta, piše »ni podprta«. Nastavitev se zapomni posebej za elektriko, plin in vodo.</li>
 </ul>
 <h3>Kaj nastavlja program sam (ves čas)</h3>
 <ul>
@@ -1435,6 +1744,33 @@ govor: ["Pomoč — govor", `
 <p>Telefon mora imeti vklopljen zvok predstavnosti. Govor deluje le, ko je stran odprta spredaj.</p>`],
 
 nastavitve: ["Pomoč — nastavitve števca in cene", `
+<h3>Vrsta merjenja</h3>
+<ul>
+<li><b>Elektrika</b> — impulzi na kWh, moč v W/kW, poraba v kWh, cena VT/MT.</li>
+<li><b>Plin (test)</b> — impulzi na m³, pretok v L/h oziroma m³/h, poraba v m³, ena cena €/m³.</li>
+<li><b>Voda (test)</b> — impulzi na m³ (1000 imp/m³ = 1 liter na impulz), pretok v L/min, poraba v litrih oziroma m³, ena cena €/m³, alarmi za vodo.</li>
+</ul>
+<p>Vsaka vrsta ima <b>svoje nastavitve in svojo zgodovino</b> (impulzi, stanje števca, cene, meje opozoril, grafi, lučka, velikost spremembe, velikost in položaj okna, barvni filter). Ob preklopu se trenutne shranijo, naložijo pa se tiste za izbrano vrsto (prvič privzete vrednosti). Če števec teče, se ob preklopu ustavi; zaženi ga znova.</p>
+<p>Tudi opozorila v razdelku Govor so v enotah izbrane vrste (W, m³/h ali L/min; kWh, m³ ali L). Opozorilo »ni impulzov« je pri plinu in vodi privzeto izklopljeno, ker je mirovanje tam običajno.</p>
+<p>Ob izbiri Plin ali Voda se samodejno odpre <a href="#" data-hl="plinvoda">pomoč za plin in vodo</a> s težavami in rešitvami.</p>
+<h3>Obračunska moč (omrežnina)</h3>
+<p>Samo pri elektriki. Omrežnina se obračunava v petih <b>časovnih blokih</b>. V vsakem bloku imaš <b>dogovorjeno obračunsko moč</b> (kW); presega se jo, ko je 15-minutno povprečje moči višje od dogovorjene.</p>
+<ul>
+<li>Vpiši dogovorjeno moč za bloke 1–5 (Moj elektro ali račun). Vrednost 0 pomeni, da blok ni nastavljen.</li>
+<li>Kazalnik <b>Blok · 15 min</b> v razdelku Trenutna moč kaže blok, ki velja zdaj, in <b>napoved</b> povprečne moči za tekoče četrturje (že porabljeno + trenutna moč do konca četrturja). Ob napovedanem preseganju je rdeč.</li>
+<li><b>Opozori</b> — po vsaj 3 minutah četrturja se enkrat na četrturje pove opozorilo, če napoved preseže dogovorjeno moč. Takrat izklopi kakšen večji porabnik.</li>
+<li><b>Tabela</b> — najvišja izmerjena 15-minutna moč v tekočem mesecu za vsak blok; rdeče, če presega dogovorjeno. Šteje se samo čas, ko je števec meril.</li>
+<li>Bloki: višja sezona od novembra do februarja, nižja od marca do oktobra; dela prost dan je sobota, nedelja ali praznik. Do konca 2026 velja razporeditev ur 7–14 in 16–20 (visoka obremenitev), 6–7, 14–16 in 20–22 (srednja), 22–6 (nizka). Od 2027 program uporabi novo razporeditev Agencije za energijo (visoka 6–12 in 17–20, srednja 12–17 in 20–22). Za uradne podatke preveri Moj elektro.</li>
+</ul>
+<h3>Alarmi za vodo</h3>
+<p>Vidni so samo pri vrsti Voda. Alarm se prikaže kot utripajoč rdeč trak na vrhu zaslona, pove se (tudi če je govor izklopljen), telefon zapiska in zavibrira. Pisk in vibriranje se ponavljata vsakih 30 s, dokler ne tapneš <b>Potrdi</b>.</p>
+<ul>
+<li><b>Neprekinjen pretok</b> — alarm, ko je v enem kosu iztočenih več litrov, kot je nastavljeno (privzeto 500 L). Pretok velja za neprekinjen, dokler med impulzi ni več kot 10 minut premora. Primer: pozabljena odprta pipa ali cev, počena cev.</li>
+<li><b>Stalna poraba (puščanje)</b> — alarm, ko je bilo v vsaki od zadnjih N polnih ur (privzeto 3) porabljenih vsaj X litrov (privzeto 10 L na uro). Pri normalni porabi je vmes vedno kakšna ura brez porabe; stalna poraba pomeni puščanje pipe ali zataknjen kotliček na WC-ju. Najbolj zanesljivo deluje ponoči. Preverja se enkrat na minuto.</li>
+<li><b>Pisk in vibriranje</b> — izklopi, če želiš samo napis in govor.</li>
+</ul>
+<p>Pod nastavitvami piše trenutni neprekinjen pretok in poraba v zadnji polni uri.</p>
+<p>Opomba: pisk deluje šele, ko se program po odprtju vsaj enkrat dotakneš (npr. tapneš Zaženi), ker brskalnik brez dotika ne dovoli zvoka.</p>
 <h3>Nastavitve števca</h3>
 <ul>
 <li><b>Impulzov na kWh</b> — z napisne ploščice števca (npr. 1000, 800, 500, 10000). <b>Najpomembnejša nastavitev</b>: napačna vrednost pomeni napačno moč, porabo in strošek. Pri plinu/vodi vpiši impulze na m³.</li>
@@ -1535,13 +1871,22 @@ podatki: ["Pomoč — podatki", `
 <p>Zadnji dogodki programa: zagon, iskanje LED, prilagoditve osvetlitve in filtra, izpadi kamere, shranjevanje. Uporabno pri iskanju težav.</p>
 <p>Pod gumbi piše, koliko minut, ur in dni je shranjenih.</p>`]
 };
-function helpOpen(k) {
+let helpAuto = null;
+function helpOpen(k, auto) {
   const h = HELP[k] || HELP.splosno;
+  helpAuto = auto || null; $("helpFoot").style.display = auto ? "" : "none"; $("helpNo").checked = false;
   $("helpT").textContent = h[0]; $("helpB").innerHTML = h[1]; $("helpB").scrollTop = 0;
   $("helpOv").classList.add("on");
 }
-function helpClose() { $("helpOv").classList.remove("on"); }
+function helpClose() {
+  $("helpOv").classList.remove("on");
+  if (helpAuto) { if ($("helpNo").checked) { S.set["hide_" + helpAuto] = true; save(); } helpAuto = null; }
+}
+$("helpB").addEventListener("click", e => { const a = e.target.closest("[data-hl]"); if (a) { e.preventDefault(); helpOpen(a.dataset.hl); } });
 $("bHelp").onclick = () => helpOpen("splosno");
+$("torch").addEventListener("change", () => { uiToSet(); save(); applyTorch(); });
+["dm1", "dm2", "dm3", "dm4", "dm5"].forEach(id => $(id).addEventListener("input", () => { uiToSet(); blkTable(); saveSoon(); }));
+$("gCol").addEventListener("change", () => { uiToSet(); save(); drawGraph(); });
 $("helpX").onclick = helpClose;
 $("helpOv").addEventListener("click", e => { if (e.target.id === "helpOv") helpClose(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") helpClose(); });
@@ -1581,13 +1926,14 @@ if (S.live) { // nadaljevanje po ponovnem odprtju strani
   if (L.dayMaxKey === dayKey(Date.now())) { dayMax = L.dayMax; dayMaxKey = L.dayMaxKey; }
 }
 setToUI(); uiToSet(); labels(); buildRules(); placeRoi();
-applyTheme(S.set.theme || "kobalt");
+applyTheme(S.set.theme || "kobalt"); applyMedium(); blkTable();
 graphTab = S.set.gTab || "m15";
 ui(); render(); drawGraph();
 setInterval(secondTick, 1000);
 if (S.run && g("kaAuto")) { logm("Samodejni zagon."); S.run = false; start(true); } else S.run = false;
 ["verTop", "verLed", "verDim"].forEach(id => $(id).textContent = VER); // ena oznaka verzije za vse prikaze
-logm("Števec elektrike " + VER + " pripravljen.");
+logm(MED[med()].title + " " + VER + " pripravljen.");
+if (!S.set.hide_intro) { S.set.hide_intro = true; save(); helpOpen("splosno"); } // pomoč samo ob prvem zagonu
 setInterval(storeEst, 60000);
 })();
 }
