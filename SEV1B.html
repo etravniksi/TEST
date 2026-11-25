@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0d18">
-<title>Števec elektrike SEV10B</title>
-<!-- Števec elektrike SEV10B — LED impulzi s kamero, grafi, govor, stalno delovanje -->
+<title>Števec elektrike SEV11B</title>
+<!-- Števec elektrike SEV11B — LED impulzi s kamero, grafi, govor, stalno delovanje -->
 <style>
 :root{--bg:#0a0d18;--pan:#121829;--pan2:#18203a;--ink:#e8ecf8;--dim:#8a94b4;--line:#263055;--acc:#3d6bff;--acc2:#1240e0;--hot:#ff5a3c;--ok:#2fd18a;--warn:#ffb020;--mt:#6e8cff;--vt:#ff8a3c;--field:#0d1222;--hl:#9fb4ff;--topink:#ffffff;--wbg:#3a2a08;--wbd:#6a4a10;--wink:#ffd890;--redb:#5a1a12;--redbd:#8a2a1a;--onacc:#ffffff}
 *{box-sizing:border-box;min-width:0}
@@ -102,7 +102,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 <body>
 <div class="top">
   <span class="dot" id="stDot"></span>
-  <h1>Števec elektrike</h1><span class="ver" id="verTop">SEV10B</span>
+  <h1>Števec elektrike</h1><span class="ver" id="verTop">SEV11B</span>
   <span class="sp"></span>
   <button id="bHelp" title="Pomoč">Pomoč</button>
   <button id="bDim" title="Temni zaslon">Temni</button>
@@ -275,7 +275,7 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 </div>
 
 <div id="ledOv">
-  <div class="vtag" id="verLed">SEV10B</div>
+  <div class="vtag" id="verLed">SEV11B</div>
   <div id="ledDot"></div>
   <div id="ledInfo"><span id="ledNow">–</span><span id="ledCnt">0 imp · 0,000 kWh</span></div>
   <div id="ledCtl">
@@ -289,14 +289,14 @@ details summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
   </div>
 </div>
 <div id="helpOv"><div id="helpBox"><div id="helpHead"><h2 id="helpT">Pomoč</h2><button id="helpX">Zapri</button></div><div id="helpB"></div></div></div>
-<div id="dim"><div class="vtag" id="verDim">SEV10B</div><div class="sub">tapni za izhod</div><div class="big" id="dimP">--</div><div id="dimS" style="margin-top:10px"></div></div>
+<div id="dim"><div class="vtag" id="verDim">SEV11B</div><div class="sub">tapni za izhod</div><div class="big" id="dimP">--</div><div id="dimS" style="margin-top:10px"></div></div>
 <video id="nosleep" playsinline muted loop style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;left:0"></video>
 <canvas id="smp" width="32" height="32" style="display:none"></canvas>
 
 <script>
 {
 "use strict";
-const VER = "SEV10B";
+const VER = "SEV11B";
 const $ = id => document.getElementById(id);
 const KEY = "stevec_elektrike";
 
@@ -595,7 +595,10 @@ let stream = null, track = null, lastFrame = 0, sigBuf = [], camRestarts = 0, fr
 const CH = ["l", "r", "g", "b", "ir"], CHN = {l: "svetlost", r: "rdeča", g: "zelena", b: "modra", ir: "rdeča − modra"};
 // detektor
 let D = null;
-function detReset(v) { D = {base: v, noise: 1, amp: 0, on: false, onT: 0, onMax: 0, thr: +g("minStep"), settle: Date.now() + 500}; }
+function detReset(v) { D = {low: v, high: v, noise: 0.5, amp: 0, on: false, onT: 0, thr: +g("minStep"), settle: Date.now() + 500, sm: [v, v, v], prev: v}; }
+// izravnava osvetlitve: kamera sproti spreminja svetlost cele slike → signal se deli s svetlostjo cele slike
+const gcv = document.createElement("canvas"); gcv.width = 16; gcv.height = 12; const gctx = gcv.getContext("2d", {willReadFrequently: true});
+let gRef = null, gNow = 0;
 let curCh = "l", chRing = {}, chScore = {}, lastChEval = 0, lastBg = 0, lastTopL = 0, topMax = 0;
 CH.forEach(c => { chRing[c] = []; chScore[c] = 0; });
 // osvetlitev
@@ -710,13 +713,18 @@ function sample() {
   const sel = g("chan") || "auto";
   if (sel !== "auto") { if (curCh !== sel) { curCh = sel; D = null; } }
   else if (now - lastChEval > 2000 && !(D && D.on)) { lastChEval = now; chooseChannel(); }
-  const v = V[curCh];
+  // svetlost cele slike (LED je majhna in nanjo skoraj ne vpliva)
+  gctx.drawImage(vid, 0, 0, 16, 12);
+  const gd = gctx.getImageData(0, 0, 16, 12).data; let gs = 0;
+  for (let i = 0; i < gd.length; i += 4) gs += 0.299 * gd[i] + 0.587 * gd[i + 1] + 0.114 * gd[i + 2];
+  gNow = gs / 192; if (gRef == null) gRef = gNow; gRef += (gNow - gRef) * 0.002;
+  const v = gNow > 4 ? V[curCh] * gRef / gNow : V[curCh];
   if (!D) detReset(v);
   detect(v, now);
   if (!(D && D.on)) expAdjust(now, bg);
   roi.classList.toggle("hit", D.on);
-  sigBuf.push([v, D.base, D.base + D.thr]); if (sigBuf.length > 240) sigBuf.shift();
-  if (frameCnt % 3 === 0) drawSig(v, D.thr);
+  sigBuf.push([D.s, D.low, D.low + D.thr]); if (sigBuf.length > 240) sigBuf.shift();
+  if (frameCnt % 3 === 0) drawSig(D.s, D.thr);
 }
 function chooseChannel() {
   let best = null;
@@ -734,32 +742,37 @@ function chooseChannel() {
     curCh = best; D = null;
   }
 }
+/* Zaznavanje utripa — dinamično, samo spremembe:
+   signal = povprečje treh zaporednih slik; »nizko« sledi signalu, ko LED ne sveti (navzdol takoj, navzgor počasi);
+   utrip = signal se dvigne nad »nizko« vsaj za prag (velikost spremembe) in nato pade nazaj čez polovico skoka.
+   Počasne spremembe (kamera, dnevna svetloba) ne štejejo, ker jih »nizko« sproti sledi. */
 function detect(v, now) {
   const minStep = +g("minStep"), el = g("mtype") !== "mark";
-  if (now < D.settle) { D.base += (v - D.base) * 0.3; return; }
-  D.thr = Math.max(minStep, 5 * D.noise, 0.5 * D.amp);
-  const diff = v - D.base;
+  D.sm.push(v); D.sm.shift();
+  const s = (D.sm[0] + D.sm[1] + D.sm[2]) / 3; D.s = s;
+  if (now < D.settle) { D.low = s; D.high = s; D.prev = s; return; }
+  D.thr = Math.max(minStep, 4 * D.noise);
   if (!D.on) {
-    if (diff > D.thr) {
-      D.on = true; D.onT = now; D.onMax = diff;
+    D.noise += (Math.abs(s - D.prev) - D.noise) * 0.02;
+    if (s - D.low >= D.thr) {
+      D.on = true; D.onT = now; D.high = s;
       if (!el) onPulse(now); // oznaka plin/voda: šteje ob začetku
-    } else {
-      D.base += (v - D.base) * 0.03;
-      D.noise += (Math.abs(diff) - D.noise) * 0.02;
-      D.amp *= 0.9993;
-    }
+    } else if (s < D.low) D.low = s;            // navzdol takoj
+    else D.low += (s - D.low) * 0.02;            // navzgor počasi (sledi kameri)
   } else {
-    D.onMax = Math.max(D.onMax, diff);
-    if (diff < D.thr * 0.4) { // padajoči rob
-      D.on = false;
+    if (s > D.high) D.high = s;
+    const jump = D.high - D.low;
+    if (s < D.low + jump * 0.5) {                // padajoči rob: nazaj čez polovico skoka
+      D.on = false; D.amp = jump;
       if (el) onPulse(D.onT);
-      D.amp = D.amp ? D.amp * 0.7 + D.onMax * 0.3 : D.onMax;
+      D.low = Math.min(D.low, s);
     } else if ((el && now - D.onT > 1500) || now - D.onT > 600000) {
-      // predolg "utrip" = sprememba svetlobe v prostoru → novo ozadje, ne šteje
-      D.on = false; D.base = v; D.settle = now + 300;
-      logm("Sprememba svetlobe — ozadje prilagojeno.");
+      // predolgo »visoko« = trajna sprememba svetlobe → nov nizek nivo, ne šteje
+      D.on = false; D.low = s; D.high = s;
+      logm("Trajna sprememba svetlobe — nivo prilagojen.");
     }
   }
+  D.prev = s;
 }
 /* --- samodejno iskanje LED: piksel, ki večkrat utripne neodvisno od ostale slike --- */
 let find = null;
@@ -804,11 +817,12 @@ function drawSig(v, thr) {
   hi += 5; lo = Math.max(0, lo - 5);
   const Y = y => H - 4 - (y - lo) / (hi - lo || 1) * (H - 8), X = i => i / 239 * W;
   [[2, cssv("--warn")], [1, cssv("--dim")], [0, cssv("--ok")]].forEach(([k, col]) => { x.strokeStyle = col; x.globalAlpha = k ? 0.6 : 1; x.lineWidth = k ? 1 : 1.6; x.beginPath(); sigBuf.forEach((a, i) => i ? x.lineTo(X(i), Y(a[k])) : x.moveTo(X(i), Y(a[k]))); x.stroke(); });
-  $("sigLbl").textContent = `signal ${fmt(v, 0)} · ozadje ${fmt(D.base, 0)} · prag +${fmt(thr, 0)} · ${fmt(fps, 0)} sl/s`;
+  $("sigLbl").textContent = `signal ${fmt(v, 0)} · nizko ${fmt(D.low, 0)} · prag +${fmt(thr, 0)} · ${fmt(fps, 0)} sl/s`;
   $("camSt").innerHTML = [
     ["Barvni filter", CHN[curCh] + ((g("chan") || "auto") === "auto" ? " (samodejno)" : "")],
-    ["Prag", `${fmt(D.thr, 0)} (samodejno, najmanj ${g("minStep")})`],
-    ["Šum / skok utripa", `${fmt(D.noise, 1)} / ${D.amp ? fmt(D.amp, 0) : "–"}`],
+    ["Prag", `${fmt(D.thr, 0)} (velikost spremembe ${g("minStep")}${D.thr > +g("minStep") ? ", povišan zaradi šuma" : ""})`],
+    ["Šum / zadnji skok nizko→visoko", `${fmt(D.noise, 1)} / ${D.amp ? fmt(D.amp, 0) : "–"}`],
+    ["Izravnava osvetlitve", gNow ? `slika ${fmt(gNow, 0)}, referenca ${fmt(gRef, 0)}` : "–"],
     ["Osvetlitev", expTxt() + (expChanges ? ` · ${expChanges}× prilagojena` : "")]
   ].map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join("");
 }
@@ -1028,13 +1042,17 @@ function drawGraph() {
   for (let i = 0; i <= 4; i++) { const v = maxV / 4 * i, y = Y(v); x.beginPath(); x.moveTo(L, y); x.lineTo(W - Rr, y); x.stroke(); x.textAlign = "right"; x.fillText(fmtAxis(v, unit), L - 5, y + 4); }
   const n = pts.length, bw = pw / n;
   bars = pts.map((p, i) => ({x0: L + i * bw, x1: L + (i + 1) * bw, p}));
+  // povprečje (črtkano) se riše najprej, da je modra črta vedno nad njim
+  if (vals.length) { const avg = vals.reduce((a, b) => a + b, 0) / vals.length; x.strokeStyle = C.warn; x.globalAlpha = 0.7; x.lineWidth = 1; x.setLineDash([3, 5]); x.beginPath(); x.moveTo(L, Y(avg)); x.lineTo(W - Rr, Y(avg)); x.stroke(); x.setLineDash([]); x.globalAlpha = 1; }
   if (line) {
     x.fillStyle = C.acc; x.globalAlpha = 0.15; x.beginPath(); let st = false;
     pts.forEach((p, i) => { if (p.mx == null) return; const X = L + (i + .5) * bw; if (!st) { x.moveTo(X, Y(p.mx)); st = true; } else x.lineTo(X, Y(p.mx)); });
     for (let i = n - 1; i >= 0; i--) { const p = pts[i]; if (p.mn != null) x.lineTo(L + (i + .5) * bw, Y(p.mn)); }
     x.fill(); x.globalAlpha = 1;
     x.strokeStyle = C.acc; x.lineWidth = 2; x.beginPath(); st = false;
-    pts.forEach((p, i) => { if (p.v == null) { st = false; return; } const X = L + (i + .5) * bw; st ? x.lineTo(X, Y(p.v)) : x.moveTo(X, Y(p.v)); st = true; }); x.stroke();
+    // neprekinjena črta: manjkajoče sekunde (npr. ko je bila stran v ozadju) se premostijo
+    x.lineJoin = "round"; x.lineWidth = 2.5;
+    pts.forEach((p, i) => { if (p.v == null) return; const X = L + (i + .5) * bw; st ? x.lineTo(X, Y(p.v)) : x.moveTo(X, Y(p.v)); st = true; }); x.stroke();
   } else {
     pts.forEach((p, i) => {
       const X = L + i * bw + Math.max(.5, bw * .12), w = Math.max(1, bw * .76);
@@ -1042,7 +1060,6 @@ function drawGraph() {
       else { x.fillStyle = i === n - 1 ? C.hl : (p.mt === undefined ? C.acc : p.mt ? C.mt : C.vt); const y = Y(p.v || 0); x.fillRect(X, y, w, T + ph - y); }
     });
   }
-  if (vals.length) { const avg = vals.reduce((a, b) => a + b, 0) / vals.length; x.strokeStyle = C.warn; x.setLineDash([4, 4]); x.beginPath(); x.moveTo(L, Y(avg)); x.lineTo(W - Rr, Y(avg)); x.stroke(); x.setLineDash([]); }
   // oznake osi x
   x.fillStyle = C.dim; x.textAlign = "center";
   const every = Math.ceil(n / Math.max(2, Math.floor(pw / 58)));
@@ -1306,7 +1323,7 @@ grafi: ["Pomoč — grafi", `
 <li><b>Oranžno</b> = višja tarifa (VT), <b>modro</b> = nižja tarifa (MT). Pri dnevih sta VT in MT zložena v isti stolpec.</li>
 <li><b>Svetlejši zadnji stolpec</b> je tekoči, še nedokončan interval.</li>
 <li><b>Rumena črtkana črta</b> je povprečje vseh prikazanih intervalov.</li>
-<li>Pri grafih v živo je modra črta povprečje, svetlo polje okoli nje pa razpon med najmanjšo in največjo moč.</li>
+<li>Pri grafih v živo je modra črta moč (neprekinjena, manjkajoče sekunde premosti), svetlo polje okoli nje pa razpon med najmanjšo in največjo moč. Rumena črtkana črta povprečja je pod modro.</li>
 </ul>
 <h3>Podrobnosti</h3>
 <p>Dotakni se stolpca: zgoraj se izpiše čas, vrednost, najmanjša in največja moč v tem intervalu ter delitev na VT in MT.</p>
@@ -1339,10 +1356,10 @@ vir: ["Pomoč — vir impulzov in kamera", `
 <h3>Graf signala</h3>
 <ul>
 <li><b>Zelena črta</b> — svetlost v oknu.</li>
-<li><b>Siva črta</b> — ozadje (svetlost, ko LED ne sveti).</li>
-<li><b>Rumena črta</b> — prag. Ko zelena preseže rumeno, je to utrip.</li>
+<li><b>Siva črta</b> — nizek nivo (svetlost, ko LED ne sveti).</li>
+<li><b>Rumena črta</b> — nizek nivo + prag. Ko zelena preseže rumeno in nato pade nazaj, je to utrip.</li>
 </ul>
-<p>Pod grafom so vrednosti signala, ozadja, praga in število slik na sekundo (običajno okrog 30).</p>
+<p>Pod grafom so vrednosti signala, nizkega nivoja, praga in število slik na sekundo (običajno okrog 30).</p>
 <h3>Nastavitve kamere</h3>
 <ul>
 <li><b>Velikost okna</b> (12–140 px) — naj zajame LED in malo okolice. Premajhno okno lahko LED izgubi ob premiku, preveliko zajame več motenj.</li>
@@ -1363,7 +1380,9 @@ vir: ["Pomoč — vir impulzov in kamera", `
 </ul>
 <h3>Kaj nastavlja program sam (ves čas)</h3>
 <ul>
-<li><b>Prag</b> — največja od treh vrednosti: velikost spremembe, 5 × šum slike, polovica višine zadnjih utripov. Tako se prilagaja svetlobi in moči LED.</li>
+<li><b>Zaznavanje sprememb</b> — signal je povprečje treh zaporednih slik. Program sproti spremlja <b>nizek nivo</b> (ko LED ne sveti): navzdol mu sledi takoj, navzgor počasi. Utrip je, ko se signal dvigne nad nizek nivo vsaj za <b>prag</b> in nato pade nazaj čez polovico skoka. Počasne spremembe (kamera, dnevna svetloba) zato ne štejejo.</li>
+<li><b>Prag</b> = velikost spremembe, ki jo nastaviš (najmanjša razlika med nizkim in visokim nivojem). Samodejno se dvigne le, če je slika zelo šumna (4 × šum).</li>
+<li><b>Izravnava osvetlitve</b> — kamera sproti spreminja svetlost cele slike. Program signal deli s svetlostjo cele slike, zato taka sprememba ne izgleda kot utrip.</li>
 <li><b>Osvetlitev kamere</b> — dolg čas osvetlitve (33 ms), da ujame tudi kratek utrip; svetlost uravnava z ISO ali kompenzacijo, da je ozadje temno, LED pa ni v nasičenju. Med prilagajanjem (0,7 s) se ne šteje.</li>
 <li><b>Ostrina in beli balans</b> se po 3 s zakleneta, da kamera ob utripu ne »lovi«.</li>
 </ul>
